@@ -6,13 +6,16 @@ authors = ["risboo6909 <ttyv00@gmail.com>"]
 [dependencies]
 rayon = "1.0"
 rand = "0.4"
+num = "0.1"
+failure = "0.1"
 
 [dev-dependencies]
 quickcheck = "0.6"
 
-[dependencies.pyo3]
-version = "0.2"
-features = ["extension-module", "python2"]
+[dependencies.cpython]
+version = "0.1"
+default_features = false
+features = ["python27-sys", "extension-module-2-7"]
 
 [lib]
 name = "fast_stat"
