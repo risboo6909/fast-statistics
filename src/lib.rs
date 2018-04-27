@@ -1,66 +1,68 @@
-#![feature(proc_macro, specialization)]
-
-extern crate pyo3;
-
-use pyo3::{py, PyResult, Python, PyModule, PyList, ObjectProtocol, FromPyObject};
-use std::ops::Add;
+#[macro_use] extern crate failure;
+#[macro_use] extern crate cpython;
+extern crate rayon;
 
 mod stat_funcs;
+mod errors;
+
+use std::clone::Clone;
+use cpython::{PyResult, Python, PyObject, FromPyObject, PyClone, PyErr, exc};
+use std::thread;
+use rayon::prelude::*;
+use errors::{MyError, to_python_result};
 
 
 #[inline]
-fn pylist_to_vec<'a, T: FromPyObject<'a>>(xs: &'a PyList) -> Vec<T> {
-
-    let ys: Vec<T> = xs
-        .iter()
-        .map(|x| x.extract::<T>()
-        .unwrap())
-        .collect();
-
-    ys
-
+fn pylist_to_vec<T>(py: Python, xs: PyObject) -> PyResult<Vec<T>>
+    where for<'a> T: FromPyObject<'a> {
+    Vec::extract(py, &xs)
 }
 
-#[inline]
-fn sum_pylist_elems<'a, T: FromPyObject<'a> + Add<Output=T> >(xs: &'a PyList, init: T) -> T {
-    let net = xs.iter().fold(init, |acc, x|
-        { acc + x.extract::<T>().unwrap() });
+py_module_initializer!(libfast_stat, initlibfast_stat, PyInit_libfast_stat, |py, m| {
+    m.add(py, "avg_float", py_fn!(py, avg_float_py(xs: PyObject)))?;
+    m.add(py, "avg_int", py_fn!(py, avg_int_py(xs: PyObject)))?;
+    m.add(py, "avg_uint", py_fn!(py, avg_uint_py(xs: PyObject)))?;
 
-    net
-}
-
-#[py::modinit(libfast_stat)]
-fn init_mod(py: Python, m: &PyModule) -> PyResult<()> {
-
-    #[pyfn(m, "mean_float")]
-    fn mean_float_py(xs: &PyList) -> PyResult<f64> {
-
-        /// It is faster to implement mean straight-forward way but
-        /// it is still slower than naive python implementation like
-        /// sum(xs) / len(xs)
-
-        let net = sum_pylist_elems(xs, 0.0);
-        Ok(net / xs.len() as f64)
-
-    }
-
-    #[pyfn(m, "mean_int")]
-    fn mean_int_py(xs: &PyList) -> PyResult<i64> {
-
-        /// It is faster to implement mean straight-forward way but
-        /// it is still slower than naive python implementation like
-        /// sum(xs) / len(xs)
-
-        let net = sum_pylist_elems(xs, 0);
-        Ok(net / xs.len() as i64)
-
-    }
-
-    #[pyfn(m, "kth_float")]
-    fn kth_float_py(xs: &PyList) -> PyResult<f64> {
-        stat_funcs::kth_stat(&mut pylist_to_vec::<f64>(xs));
-        Ok(1.0)
-    }
-
+    m.add(py, "kth_float", py_fn!(py, kth_float_py(xs: PyObject, k: usize)))?;
+//    m.add(py, "kth_int", py_fn!(py, kth_int_py(xs: PyList, k: usize)))?;
+//    m.add(py, "kth_uint", py_fn!(py, kth_uint_py(xs: PyList, k: usize)))?;
     Ok(())
+});
+
+
+// Average functions for float, int and uint
+
+fn avg_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
+    let ys: Vec<f64> = pylist_to_vec(py, xs)?;
+    to_python_result(py, stat_funcs::avg_num(ys))
 }
+
+fn avg_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
+    let ys: Vec<i64> = pylist_to_vec(py, xs)?;
+    to_python_result(py, stat_funcs::avg_num(ys))
+}
+
+fn avg_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
+    let ys: Vec<u64> = pylist_to_vec(py, xs)?;
+    to_python_result(py, stat_funcs::avg_num(ys))
+}
+
+// k-th order statistic for float, int and uint
+
+fn kth_float_py(py: Python, xs: PyObject, k: usize) -> PyResult<f64> {
+    let mut ys = pylist_to_vec::<f64>(py, xs)?;
+    stat_funcs::kth_stat(&mut ys, k);
+    Ok(ys[k])
+}
+
+//fn kth_int_py(py: Python, xs: PyList, k: usize) -> PyResult<i64> {
+//    let mut ys = pylist_to_vec::<i64>(py, xs);
+//    stat_funcs::kth_stat(&mut ys, k);
+//    Ok(ys[k])
+//}
+//
+//fn kth_uint_py(py: Python, xs: PyList, k: usize) -> PyResult<u64> {
+//    let mut ys = pylist_to_vec::<u64>(py, xs);
+//    stat_funcs::kth_stat(&mut ys, k);
+//    Ok(ys[k])
+//}
