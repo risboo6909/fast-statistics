@@ -11,6 +11,9 @@ use self::num::{Zero, One};
 use super::errors::MyError;
 
 
+const FULL_SCAN_THRESHOLD_MAX: f64 = 10.0;
+
+
 #[inline]
 fn rand_range(from: usize, to: usize) -> usize {
     if from == to {
@@ -39,7 +42,9 @@ pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
 
 fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, end: usize) -> usize {
 
-    /// Partition an input slice xs in-place
+    /// Partition an input slice xs in-place, such that elements smaller
+    /// than the pivot are at the left side and elements bigger than the pivot are
+    /// at the right side.
     ///
     /// # Example
     /// ```
@@ -84,18 +89,47 @@ fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, 
 
 pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> T {
 
-    // Kth statistic works in amortized linear time O(n), the worst
-    // case will still be O(nlogn)
+    /// Kth statistic works in amortized linear time O(n), the worst
+    /// case will still be O(n^2).
+    ///
+    /// To avoid quadratic time in the worst case, after number (N)
+    /// of steps if an algorithm still didn't finish its execution
+    /// try to switch to trivial heapsort and get kth element from sorted
+    /// list. This will improve worst-case time to O(nlogn)
 
     let l = xs.len();
 
     let mut left = 0;
     let mut right = l;
 
+    // number of full array scans performed during partitioning
+    let mut full_scan = 0;
+
+    // the bigger array means the smaller threshold, we can afford plenty mistakes for small
+    // arrays but their price increases for the big ones
+    let full_scan_threshold = 1.max((FULL_SCAN_THRESHOLD_MAX / (l as f64)
+                                     .log10())
+                                     .round() as usize);
+
     loop {
 
         let pivot_idx = rand_range(left, right);
         let idx = partition(xs, pivot_idx, left, right);
+
+        if idx == left {
+
+            full_scan += 1;
+
+            if full_scan == full_scan_threshold {
+                // in case we had some threshold of full scans of an input array,
+                // it probably means that the array consists of similar elements and further
+                // iterations won't be effective enough, so we just give up and use sorting
+                // instead
+                xs.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+                return xs[k];
+            }
+
+        }
 
         if k == idx {
             return xs[k];
