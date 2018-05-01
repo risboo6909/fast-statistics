@@ -40,6 +40,21 @@ pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
     Ok(sum / len)
 }
 
+pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
+
+    let (sum, len) = xs.into_par_iter()
+        .fold(|| (0.0, 0.0), |acc, y|
+            (acc.0 + y.recip(), acc.1 + 1.0))
+        .reduce(|| (0.0, 0.0), |acc, e|
+            (acc.0 + e.0, acc.1 + e.1));
+
+    if len == 0.0 {
+        return Err(MyError::DivisionByZero);
+    }
+
+    Ok(len / sum)
+}
+
 fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, end: usize) -> usize {
 
     /// Partition an input slice xs in-place, such that elements smaller
@@ -125,7 +140,8 @@ pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> T {
                 // it probably means that the array consists of similar elements and further
                 // iterations won't be effective enough, so we just give up and use sorting
                 // instead
-                xs.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+                xs.sort_unstable_by(|a, b|
+                    a.partial_cmp(b).unwrap());
                 return xs[k];
             }
 

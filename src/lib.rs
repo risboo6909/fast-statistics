@@ -1,14 +1,12 @@
 #[macro_use] extern crate failure;
 #[macro_use] extern crate cpython;
-extern crate rayon;
 
 mod stat_funcs;
 mod errors;
 
 use std::clone::Clone;
-use cpython::{PyResult, Python, PyObject, FromPyObject, PyClone, PyErr, exc};
+use cpython::{PyResult, Python, PyObject, FromPyObject};
 use std::thread;
-use rayon::prelude::*;
 use errors::{MyError, to_python_result};
 
 
@@ -23,9 +21,11 @@ py_module_initializer!(libfast_stat, initlibfast_stat, PyInit_libfast_stat, |py,
     m.add(py, "avg_int", py_fn!(py, avg_int_py(xs: PyObject)))?;
     m.add(py, "avg_uint", py_fn!(py, avg_uint_py(xs: PyObject)))?;
 
+    m.add(py, "harmonic_mean", py_fn!(py, harmonic_mean_py(xs: PyObject)))?;
+
     m.add(py, "kth_float", py_fn!(py, kth_float_py(xs: PyObject, k: usize)))?;
-//    m.add(py, "kth_int", py_fn!(py, kth_int_py(xs: PyList, k: usize)))?;
-//    m.add(py, "kth_uint", py_fn!(py, kth_uint_py(xs: PyList, k: usize)))?;
+    m.add(py, "kth_int", py_fn!(py, kth_int_py(xs: PyObject, k: usize)))?;
+    m.add(py, "kth_uint", py_fn!(py, kth_uint_py(xs: PyObject, k: usize)))?;
     Ok(())
 });
 
@@ -47,6 +47,14 @@ fn avg_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
     to_python_result(py, stat_funcs::avg_num(ys))
 }
 
+// Harmonic mean for float has a meaning for floats only
+
+fn harmonic_mean_py(py: Python, xs: PyObject) -> PyResult<f64> {
+    let ys: Vec<f64> = pylist_to_vec(py, xs)?;
+    to_python_result(py, stat_funcs::harmonic_mean(ys))
+}
+
+
 // k-th order statistic for float, int and uint
 
 fn kth_float_py(py: Python, xs: PyObject, k: usize) -> PyResult<f64> {
@@ -55,14 +63,14 @@ fn kth_float_py(py: Python, xs: PyObject, k: usize) -> PyResult<f64> {
     Ok(ys[k])
 }
 
-//fn kth_int_py(py: Python, xs: PyList, k: usize) -> PyResult<i64> {
-//    let mut ys = pylist_to_vec::<i64>(py, xs);
-//    stat_funcs::kth_stat(&mut ys, k);
-//    Ok(ys[k])
-//}
-//
-//fn kth_uint_py(py: Python, xs: PyList, k: usize) -> PyResult<u64> {
-//    let mut ys = pylist_to_vec::<u64>(py, xs);
-//    stat_funcs::kth_stat(&mut ys, k);
-//    Ok(ys[k])
-//}
+fn kth_int_py(py: Python, xs: PyObject, k: usize) -> PyResult<i64> {
+    let mut ys = pylist_to_vec::<i64>(py, xs)?;
+    stat_funcs::kth_stat(&mut ys, k);
+    Ok(ys[k])
+}
+
+fn kth_uint_py(py: Python, xs: PyObject, k: usize) -> PyResult<u64> {
+    let mut ys = pylist_to_vec::<u64>(py, xs)?;
+    stat_funcs::kth_stat(&mut ys, k);
+    Ok(ys[k])
+}
