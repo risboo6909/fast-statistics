@@ -7,6 +7,7 @@ use self::rand::Rng;
 use std::fmt::Debug;
 use std::iter::Sum;
 use std::ops::{Add, Div};
+use std::collections::HashMap;
 use self::num::{Zero, One};
 use super::errors::MyError;
 
@@ -102,7 +103,73 @@ fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, 
 
 }
 
-pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> T {
+
+fn kth_stat_helper<T: Copy + PartialOrd + Debug>(xs: &mut[T], ks: &mut Vec<usize>,
+                                                 left: usize, right: usize) -> HashMap<usize, T>
+{
+
+    if left >= right || ks.len() == 0 {
+        return HashMap::new();
+    }
+
+    // choose random pivot point
+    let pivot_idx = rand_range(left, right);
+
+    // partition an array into two halves, one consists of all elements less than
+    // pivot and another one consists of all elements bigger than the pivot
+    let real_idx = partition(xs, pivot_idx, left, right);
+
+    let ks_len = ks.len();
+    let mut found = HashMap::new();
+
+    let k_idx = match(ks.binary_search(&real_idx)) {
+        Ok(k_idx) => {
+            found.insert(ks.remove(k_idx), xs[real_idx]);
+            k_idx
+        },
+        Err(k_idx) => {
+            k_idx
+        }
+    };
+
+    if k_idx > 0 && k_idx < ks_len {
+        let (ks_left, ks_right) = ks.split_at(k_idx);
+
+        let from_left = kth_stat_helper(xs, &mut ks_left.to_vec(),
+                                                                 left, real_idx);
+
+        let from_right = kth_stat_helper(xs, &mut ks_right.to_vec(),
+                                                                  real_idx + 1, right);
+
+        found.extend(from_left);
+        found.extend(from_right);
+
+    } else if k_idx == 0 {
+        let from_right = kth_stat_helper(xs, ks, real_idx + 1, right);
+        found.extend(from_right);
+
+    } else if k_idx == ks_len {
+        let from_left = kth_stat_helper(xs, ks, left, real_idx);
+        found.extend(from_left);
+    };
+
+    found
+
+}
+
+pub fn kth_stats_recur<T: Copy + PartialOrd + Debug>(xs: &mut [T], ks: &mut [usize]) ->
+                                                                            HashMap<usize, T> {
+
+    let xs_len = xs.len();
+    let ks_vec = &mut ks.to_vec();
+
+    ks_vec.sort_unstable();
+    ks_vec.dedup();
+
+    kth_stat_helper(xs, ks_vec, 0, xs_len)
+}
+
+pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) {
 
     /// Kth statistic works in amortized linear time O(n), the worst
     /// case will still be O(n^2).
@@ -112,50 +179,7 @@ pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> T {
     /// try to switch to trivial heapsort and get kth element from sorted
     /// list. This will improve worst-case time to O(nlogn)
 
-    let l = xs.len();
 
-    let mut left = 0;
-    let mut right = l;
-
-    // number of full array scans performed during partitioning
-    let mut full_scan = 0;
-
-    // the bigger array means the smaller threshold, we can afford plenty mistakes for small
-    // arrays but their price increases for the big ones
-    let full_scan_threshold = 1.max((FULL_SCAN_THRESHOLD_MAX / (l as f64)
-                                     .log10())
-                                     .round() as usize);
-
-    loop {
-
-        let pivot_idx = rand_range(left, right);
-        let idx = partition(xs, pivot_idx, left, right);
-
-        if idx == left {
-
-            full_scan += 1;
-
-            if full_scan == full_scan_threshold {
-                // in case we had some threshold of full scans of an input array,
-                // it probably means that the array consists of similar elements and further
-                // iterations won't be effective enough, so we just give up and use sorting
-                // instead
-                xs.sort_unstable_by(|a, b|
-                    a.partial_cmp(b).unwrap());
-                return xs[k];
-            }
-
-        }
-
-        if k == idx {
-            return xs[k];
-        } else if k < idx {
-            right = idx;
-        } else {
-            left = idx + 1;
-        }
-
-    }
 }
 
 
@@ -163,7 +187,7 @@ pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> T {
 mod tests {
     extern crate quickcheck;
 
-    use stat_funcs::{partition, kth_stat, rand_range};
+    use stat_funcs::{partition, kth_stats_recur, rand_range};
     use self::quickcheck::{quickcheck, TestResult};
 
     fn is_partitioned<T: Copy + PartialOrd>(xs: &[T], pivot_elem: T) -> bool {
@@ -204,7 +228,9 @@ mod tests {
         } else {
             let mut ys = xs.clone();
             xs.sort();
-            TestResult::from_bool(xs[k] == kth_stat(&mut ys, k))
+            TestResult::from_bool(xs[k] == *kth_stats_recur(&mut ys, &mut [k])
+                                              .get(&k)
+                                              .unwrap())
         }
     }
 
@@ -216,6 +242,12 @@ mod tests {
     #[test]
     fn test_kth() {
         quickcheck(ensure_statistics as fn (Vec<u32>, usize) -> TestResult);
+    }
+
+    #[test]
+    fn test_kth_recur() {
+        let result = kth_stats_recur(&mut [3,1,2,4,6,5,8,7], &mut [5, 7]);
+        println!("{:?}", result);
     }
 
 }

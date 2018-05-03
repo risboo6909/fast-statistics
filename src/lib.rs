@@ -24,8 +24,8 @@ py_module_initializer!(libfast_stat, initlibfast_stat, PyInit_libfast_stat, |py,
     m.add(py, "harmonic_mean", py_fn!(py, harmonic_mean_py(xs: PyObject)))?;
 
     m.add(py, "kth_float", py_fn!(py, kth_float_py(xs: PyObject, k: usize)))?;
-    m.add(py, "kth_int", py_fn!(py, kth_int_py(xs: PyObject, k: usize)))?;
-    m.add(py, "kth_uint", py_fn!(py, kth_uint_py(xs: PyObject, k: usize)))?;
+//    m.add(py, "kth_int", py_fn!(py, kth_int_py(xs: PyObject, k: usize)))?;
+//    m.add(py, "kth_uint", py_fn!(py, kth_uint_py(xs: PyObject, k: usize)))?;
     Ok(())
 });
 
@@ -59,18 +59,18 @@ fn harmonic_mean_py(py: Python, xs: PyObject) -> PyResult<f64> {
 
 fn kth_float_py(py: Python, xs: PyObject, k: usize) -> PyResult<f64> {
     let mut ys = pylist_to_vec::<f64>(py, xs)?;
-    stat_funcs::kth_stat(&mut ys, k);
-    Ok(ys[k])
+    let results = stat_funcs::kth_stats_recur(&mut ys, &mut [k]);
+    Ok(1.0)
 }
-
-fn kth_int_py(py: Python, xs: PyObject, k: usize) -> PyResult<i64> {
-    let mut ys = pylist_to_vec::<i64>(py, xs)?;
-    stat_funcs::kth_stat(&mut ys, k);
-    Ok(ys[k])
-}
-
-fn kth_uint_py(py: Python, xs: PyObject, k: usize) -> PyResult<u64> {
-    let mut ys = pylist_to_vec::<u64>(py, xs)?;
-    stat_funcs::kth_stat(&mut ys, k);
-    Ok(ys[k])
-}
+//
+//fn kth_int_py(py: Python, xs: PyObject, k: usize) -> PyResult<i64> {
+//    let mut ys = pylist_to_vec::<i64>(py, xs)?;
+//    stat_funcs::kth_stat(&mut ys, k);
+//    Ok(ys[k])
+//}
+//
+//fn kth_uint_py(py: Python, xs: PyObject, k: usize) -> PyResult<u64> {
+//    let mut ys = pylist_to_vec::<u64>(py, xs)?;
+//    stat_funcs::kth_stat(&mut ys, k);
+//    Ok(ys[k])
+//}
