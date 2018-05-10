@@ -27,6 +27,10 @@ py_module_initializer!(libfast_stat, initlibfast_stat, PyInit_libfast_stat, |py,
     m.add(py, "median_int", py_fn!(py, median_int_py(xs: PyObject)))?;
     m.add(py, "median_uint", py_fn!(py, median_uint_py(xs: PyObject)))?;
 
+    m.add(py, "median_low_float", py_fn!(py, median_low_float_py(xs: PyObject)))?;
+    m.add(py, "median_low_int", py_fn!(py, median_low_int_py(xs: PyObject)))?;
+    m.add(py, "median_low_uint", py_fn!(py, median_low_uint_py(xs: PyObject)))?;
+
     m.add(py, "kth_float", py_fn!(py, kth_float_py(xs: PyObject, k: usize)))?;
     m.add(py, "kth_int", py_fn!(py, kth_int_py(xs: PyObject, k: usize)))?;
     m.add(py, "kth_uint", py_fn!(py, kth_uint_py(xs: PyObject, k: usize)))?;
@@ -76,20 +80,21 @@ fn median_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
     to_python_result(py, stat_funcs::median(&mut ys))
 }
 
-//fn median_low_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
-//    let ys: Vec<f64> = pylist_to_vec(py, xs)?;
-//    to_python_result(py, stat_funcs::median_low(ys))
-//}
-//
-//fn median_low_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
-//    let ys: Vec<i64> = pylist_to_vec(py, xs)?;
-//    to_python_result(py, stat_funcs::median_low(ys))
-//}
-//
-//fn median_low_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
-//    let ys: Vec<u64> = pylist_to_vec(py, xs)?;
-//    to_python_result(py, stat_funcs::median_low(ys))
-//}
+fn median_low_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
+    let mut ys: Vec<f64> = pylist_to_vec(py, xs)?;
+    to_python_result(py, stat_funcs::median_low(&mut ys))
+}
+
+fn median_low_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
+    let mut ys: Vec<i64> = pylist_to_vec(py, xs)?;
+    to_python_result(py, stat_funcs::median_low(&mut ys))
+}
+
+fn median_low_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
+    let mut ys: Vec<u64> = pylist_to_vec(py, xs)?;
+    to_python_result(py, stat_funcs::median_low(&mut ys))
+}
+
 
 // k-th order statistic for float, int and uint
 
