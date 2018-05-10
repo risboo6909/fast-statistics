@@ -1,18 +1,21 @@
-use cpython::{PyResult, Python, PyErr, exc};
+use cpython::{PyResult, Python, PyErr};
+
+
+py_exception!(fast_stat, StatisticsError);
 
 
 #[derive(Fail, Debug)]
 pub enum MyError {
     #[fail(display = "Division by zero")]
-    DivisionByZero,
+    ZeroDivisionError,
 }
 
 
 #[inline]
 pub fn to_python_result<T>(py: Python, res: Result<T, MyError>) -> PyResult<T> {
     match res {
-        Err(MyError::DivisionByZero) => Err(PyErr::new::<exc::ZeroDivisionError, _>
-            (py, "integer division or modulo by zero")),
+        Err(MyError::ZeroDivisionError) => Err(PyErr::new::<StatisticsError, _>
+            (py, "Integer division or modulo by zero")),
         Ok(x) => Ok(x)
     }
 }

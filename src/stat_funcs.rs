@@ -5,14 +5,11 @@ extern crate num;
 use stat_funcs::rayon::prelude::*;
 use self::rand::Rng;
 use std::fmt::Debug;
-use std::iter::Sum;
+use std::cmp;
 use std::ops::{Add, Div};
 use std::collections::HashMap;
-use self::num::{Zero, One};
+use self::num::{Zero, One, Num};
 use super::errors::MyError;
-
-
-const FULL_SCAN_THRESHOLD_MAX: f64 = 10.0;
 
 
 #[inline]
@@ -35,7 +32,7 @@ pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
             (acc.0 + e.0, acc.1 + e.1));
 
     if len == T::zero() {
-        return Err(MyError::DivisionByZero);
+        return Err(MyError::ZeroDivisionError);
     }
 
     Ok(sum / len)
@@ -48,12 +45,62 @@ pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
             (acc.0 + y.recip(), acc.1 + 1.0))
         .reduce(|| (0.0, 0.0), |acc, e|
             (acc.0 + e.0, acc.1 + e.1));
-
-    if len == 0.0 {
-        return Err(MyError::DivisionByZero);
-    }
+//
+//    if len == 0.0 {
+//        return Err(InternalStatisticsError{msg: ''});
+//    }
 
     Ok(len / sum)
+}
+
+#[inline]
+fn get_two_med<'a, T: 'a>(r: &'a HashMap<usize, T>) -> (&'a T, &'a T) {
+    let v = r.values().collect::<Vec<&T>>();
+    (v[0], v[1])
+}
+
+pub fn median<T>(xs: &mut [T]) -> Result<T, MyError> where T: Copy + PartialOrd + Num + Add + Debug {
+
+    let xs_len = xs.len();
+    let mut med_idx = (xs_len as f64 / 2.0) as usize;
+
+    if xs_len % 2 == 0 {
+        let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
+        let (a, b) = get_two_med(&r);
+        let two = T::one() + T::one();
+        Ok((*a + *b) / two)
+    } else {
+        kth_stat(xs, med_idx)
+    }
+
+}
+
+pub fn median_low<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + Ord + Num + Add + Debug {
+
+    let xs_len = xs.len();
+    let mut med_idx = (xs_len as f64 / 2.0) as usize;
+
+    if xs_len % 2 == 0 {
+        let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
+        let (a, b) = get_two_med(&r);
+        Ok(cmp::min(*a, *b))
+    } else {
+        kth_stat(xs, med_idx)
+    }
+}
+
+pub fn median_high<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + Ord + Num + Add + Debug {
+
+    let xs_len = xs.len();
+    let mut med_idx = (xs_len as f64 / 2.0) as usize;
+
+    if xs_len % 2 == 0 {
+        let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
+        let (a, b) = get_two_med(&r);
+        Ok(cmp::max(*a, *b))
+    } else {
+        kth_stat(xs, med_idx)
+    }
 }
 
 fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, end: usize) -> usize {
@@ -116,12 +163,15 @@ fn kth_stat_helper<T: Copy + PartialOrd + Debug>(xs: &mut[T], ks: &mut Vec<usize
     let pivot_idx = rand_range(left, right);
 
     // partition an array into two halves, one consists of all elements less than
-    // pivot and another one consists of all elements bigger than the pivot
+    // the pivot and another one consists of all elements bigger than the pivot
     let real_idx = partition(xs, pivot_idx, left, right);
 
     let ks_len = ks.len();
     let mut found = HashMap::new();
 
+    // tricky part, ks - is a sorted array of statistics that we want to
+    // find, for example [10, 30, 50, 70, 99], then we will use binary search to
+    // figure out position of pivot element in the ks list
     let k_idx = match(ks.binary_search(&real_idx)) {
         Ok(k_idx) => {
             found.insert(ks.remove(k_idx), xs[real_idx]);
@@ -133,24 +183,24 @@ fn kth_stat_helper<T: Copy + PartialOrd + Debug>(xs: &mut[T], ks: &mut Vec<usize
     };
 
     if k_idx > 0 && k_idx < ks_len {
+
+        // if index of pivot element was in the middle of ks list, we need 2 recursive calls
+        // one to find all elements lesser than the pivot element and another one to find
+        // all elements bigger than the pivot element
+
         let (ks_left, ks_right) = ks.split_at(k_idx);
-
-        let from_left = kth_stat_helper(xs, &mut ks_left.to_vec(),
-                                                                 left, real_idx);
-
-        let from_right = kth_stat_helper(xs, &mut ks_right.to_vec(),
-                                                                  real_idx + 1, right);
-
-        found.extend(from_left);
-        found.extend(from_right);
+        found.extend(kth_stat_helper(xs, &mut ks_left.to_vec(), left, real_idx));
+        found.extend(kth_stat_helper(xs, &mut ks_right.to_vec(), real_idx + 1, right));
 
     } else if k_idx == 0 {
-        let from_right = kth_stat_helper(xs, ks, real_idx + 1, right);
-        found.extend(from_right);
+        // if the leftmost element of ks was found only one recursive call is required, because
+        // it is guaranteed that no elements with smaller than k_idx position are required
+        found.extend(kth_stat_helper(xs, ks, real_idx + 1, right));
 
     } else if k_idx == ks_len {
-        let from_left = kth_stat_helper(xs, ks, left, real_idx);
-        found.extend(from_left);
+        // if the rightmost element of ks was found only one recursive call is required because
+        // it is guaranteed that no elements with bigger than k_idx position are required
+        found.extend(kth_stat_helper(xs, ks, left, real_idx));
     };
 
     found
@@ -159,7 +209,6 @@ fn kth_stat_helper<T: Copy + PartialOrd + Debug>(xs: &mut[T], ks: &mut Vec<usize
 
 pub fn kth_stats_recur<T: Copy + PartialOrd + Debug>(xs: &mut [T], ks: &mut [usize]) ->
                                                                             HashMap<usize, T> {
-
     let xs_len = xs.len();
     let ks_vec = &mut ks.to_vec();
 
@@ -169,7 +218,7 @@ pub fn kth_stats_recur<T: Copy + PartialOrd + Debug>(xs: &mut [T], ks: &mut [usi
     kth_stat_helper(xs, ks_vec, 0, xs_len)
 }
 
-pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) {
+pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> Result<T, MyError> {
 
     /// Kth statistic works in amortized linear time O(n), the worst
     /// case will still be O(n^2).
@@ -179,6 +228,7 @@ pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) {
     /// try to switch to trivial heapsort and get kth element from sorted
     /// list. This will improve worst-case time to O(nlogn)
 
+    Ok(*kth_stats_recur(xs, &mut [k]).get(&k).unwrap())
 
 }
 
@@ -187,7 +237,7 @@ pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) {
 mod tests {
     extern crate quickcheck;
 
-    use stat_funcs::{partition, kth_stats_recur, rand_range};
+    use stat_funcs::{partition, kth_stats_recur, rand_range, median};
     use self::quickcheck::{quickcheck, TestResult};
 
     fn is_partitioned<T: Copy + PartialOrd>(xs: &[T], pivot_elem: T) -> bool {
@@ -219,18 +269,41 @@ mod tests {
         }
     }
 
-    fn ensure_statistics(mut xs: Vec<u32>, k: usize) -> TestResult {
-        let l = xs.len();
-        if l == 0 {
+    fn ensure_statistics(mut xs: Vec<u32>, mut ks: Vec<usize>) -> TestResult {
+
+        let len_xs = xs.len();
+        let len_ks = ks.len();
+
+        if len_xs == 0 {
             TestResult::discard()
-        } else if k >= l {
+        } else if len_ks >= len_xs {
             TestResult::discard()
         } else {
+
+            // ensure all ks indices fit into the source vector bounds
+            for k in &ks {
+                if k >= &len_xs {
+                    return TestResult::discard();
+                }
+            }
+
             let mut ys = xs.clone();
+            let mut passed = true;
+
+            let result = kth_stats_recur(&mut ys, &mut ks);
+
             xs.sort();
-            TestResult::from_bool(xs[k] == *kth_stats_recur(&mut ys, &mut [k])
-                                              .get(&k)
-                                              .unwrap())
+
+            // check that all elements found by kth_stat_recur are the same as
+            // corresponding elements in sorted list
+            for k in ks {
+                if xs[k] != *result.get(&k).unwrap() {
+                    passed = true;
+                    break;
+                }
+            }
+
+            TestResult::from_bool(passed)
         }
     }
 
@@ -241,12 +314,12 @@ mod tests {
 
     #[test]
     fn test_kth() {
-        quickcheck(ensure_statistics as fn (Vec<u32>, usize) -> TestResult);
+        quickcheck(ensure_statistics as fn (Vec<u32>, Vec<usize>) -> TestResult);
     }
 
     #[test]
     fn test_kth_recur() {
-        let result = kth_stats_recur(&mut [3,1,2,4,6,5,8,7], &mut [5, 7]);
+        let result = median(&mut [1.0,3.0,4.0,7.0]);
         println!("{:?}", result);
     }
 
