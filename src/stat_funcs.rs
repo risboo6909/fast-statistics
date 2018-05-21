@@ -8,8 +8,7 @@ use std::cmp::Ordering;
 use std::fmt::Debug;
 use std::cmp;
 use std::ops::{Add, Div};
-use std::collections::HashMap;
-use std::hash::Hash;
+use std::collections::{HashMap, BTreeMap};
 use self::num::{Zero, One, Num};
 use super::errors::MyError;
 
@@ -24,16 +23,16 @@ fn rand_range(from: usize, to: usize) -> usize {
     }
 }
 
-pub fn mode<T: Send + Eq + Hash + Copy + Debug>(xs: Vec<T>) -> Result<T, MyError> {
+pub fn mode<T: Send + Eq + Ord + Copy + Debug>(xs: Vec<T>) -> Result<T, MyError> {
 
     /// Generic function uses rayon to compute mode in parallel
 
     let pairs  = xs.into_par_iter()
-        .fold(|| HashMap::new(), |mut acc, e| {
+        .fold(|| BTreeMap::new(), |mut acc, e| {
             (*acc.entry(e).or_insert(0)) += 1;
             acc
         })
-        .reduce(|| HashMap::new(), |mut acc, part| {
+        .reduce(|| BTreeMap::new(), |mut acc, part| {
             for (k, v) in part.into_iter() {
                 (*acc.entry(k).or_insert(0)) += v;
             };
