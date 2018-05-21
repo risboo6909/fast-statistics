@@ -6,11 +6,8 @@ extern crate ordered_float;
 mod stat_funcs;
 mod errors;
 
-use std::clone::Clone;
-use std::thread;
 use cpython::{PyResult, Python, PyObject, PyList, PyDrop, FromPyObject};
-use errors::{MyError, to_python_result};
-use num::{Num, NumCast};
+use errors::to_python_result;
 use ordered_float::*;
 
 
@@ -34,6 +31,9 @@ py_module_initializer!(libfast_stat, initlibfast_stat, PyInit_libfast_stat, |py,
     m.add(py, "median_high_uint", py_fn!(py, median_high_uint_py(xs: PyObject)))?;
 
     m.add(py, "mode_float", py_fn!(py, mode_float_py(xs: PyObject)))?;
+    m.add(py, "mode_int", py_fn!(py, mode_int_py(xs: PyObject)))?;
+    m.add(py, "mode_uint", py_fn!(py, mode_uint_py(xs: PyObject)))?;
+    m.add(py, "mode_str", py_fn!(py, mode_str_py(xs: PyObject)))?;
 
 //    m.add(py, "kth_element", py_fn!(py, kth_py(xs: PyObject, k: usize)))?;
 
@@ -52,7 +52,7 @@ fn pylist_to_vec<T>(py: Python, xs: PyObject) -> PyResult<Vec<T>>
 }
 
 #[inline]
-fn extract_floats<'a>(py: Python, obj: &'a PyObject) -> PyResult<Vec<OrderedFloat<f64>>> {
+fn extract_ordered_floats<'a>(py: Python, obj: &'a PyObject) -> PyResult<Vec<OrderedFloat<f64>>> {
     let list = try!(obj.cast_as::<PyList>(py));
 
     let len = list.len(py);
@@ -138,17 +138,34 @@ fn median_high_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
     to_python_result(py, stat_funcs::median_high(&mut ys))
 }
 
-
 // mode for float, int, uint and str
 
 fn mode_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
-    let mut ys = extract_floats(py, &xs)?;
+    let ys = extract_ordered_floats(py, &xs)?;
+
+    let res =
     match stat_funcs::mode::<OrderedFloat<f64>>(ys) {
-        Ok(res) => to_python_result(py, Ok(res.into())),
-        Err(err) => to_python_result(py, Err(err))
-    }
+        Ok(res) => Ok(res.into()),
+        Err(err) => Err(err)
+    };
+
+    to_python_result(py, res)
 }
 
+fn mode_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
+    let ys = pylist_to_vec::<i64>(py, xs)?;
+    to_python_result(py, stat_funcs::mode(ys))
+}
+
+fn mode_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
+    let ys = pylist_to_vec::<u64>(py, xs)?;
+    to_python_result(py, stat_funcs::mode(ys))
+}
+
+fn mode_str_py(py: Python, xs: PyObject) -> PyResult<String> {
+    let ys = pylist_to_vec::<String>(py, xs)?;
+    to_python_result(py, stat_funcs::mode(ys))
+}
 
 // k-th order statistic for float, int and uint
 
@@ -166,4 +183,3 @@ fn kth_uint_py(py: Python, xs: PyObject, k: usize) -> PyResult<u64> {
     let mut ys = pylist_to_vec::<u64>(py, xs)?;
     to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
 }
-

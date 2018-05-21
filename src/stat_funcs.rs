@@ -6,7 +6,6 @@ use stat_funcs::rayon::prelude::*;
 use self::rand::Rng;
 use std::cmp::Ordering;
 use std::fmt::Debug;
-use std::cmp;
 use std::ops::{Add, Div};
 use std::collections::{HashMap, BTreeMap};
 use self::num::{Zero, One, Num};
@@ -23,7 +22,7 @@ fn rand_range(from: usize, to: usize) -> usize {
     }
 }
 
-pub fn mode<T: Send + Eq + Ord + Copy + Debug>(xs: Vec<T>) -> Result<T, MyError> {
+pub fn mode<T: Send + Eq + Ord + Debug>(xs: Vec<T>) -> Result<T, MyError> {
 
     /// Generic function uses rayon to compute mode in parallel
 
@@ -226,7 +225,7 @@ fn kth_stat_helper<T: Copy + PartialOrd + Debug>(xs: &mut[T], ks: &mut Vec<usize
     // tricky part, ks - is a sorted array of statistics that we want to
     // find, for example [10, 30, 50, 70, 99], then we will use binary search to
     // figure out position of pivot element in the ks list
-    let k_idx = match(ks.binary_search(&real_idx)) {
+    let k_idx = match ks.binary_search(&real_idx) {
         Ok(k_idx) => {
             found.insert(ks.remove(k_idx), xs[real_idx]);
             k_idx
