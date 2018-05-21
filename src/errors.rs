@@ -8,6 +8,8 @@ py_exception!(fast_stat, StatisticsError);
 pub enum MyError {
     #[fail(display = "Integer division or modulo by zero")]
     ZeroDivisionError,
+    #[fail(display = "No unique mode")]
+    NoUniqueMode,
     #[fail(display = "Wrong type")]
     WrongTypeError,
 }

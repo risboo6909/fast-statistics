@@ -4,7 +4,7 @@ extern crate num;
 
 use stat_funcs::rayon::prelude::*;
 use self::rand::Rng;
-use std::cmp::Ordering;
+use std::cmp::{min, max, Ordering};
 use std::fmt::Debug;
 use std::ops::{Add, Div};
 use std::collections::{HashMap, BTreeMap};
@@ -37,6 +37,8 @@ pub fn mode<T: Send + Eq + Ord + Debug>(xs: Vec<T>) -> Result<T, MyError> {
             };
             acc
         });
+
+    //let best = pairs.into_par_iter().sort_by_key(|pair| pair.1).unwrap();
 
     let best = pairs.into_par_iter().max_by_key(|pair| pair.1).unwrap();
 
@@ -81,32 +83,6 @@ fn get_two_med<'a, T: 'a>(r: &'a HashMap<usize, T>) -> (&'a T, &'a T) {
     (v[0], v[1])
 }
 
-#[inline]
-fn partial_min<T: PartialOrd + Copy>(a: T, b: T) -> Option<T> {
-    match a.partial_cmp(&b) {
-        Some(Ordering::Less) | Some(Ordering::Equal) => {
-            Some(a)
-        },
-        Some(Ordering::Greater) => {
-            Some(b)
-        },
-        None => None
-    }
-}
-
-#[inline]
-fn partial_max<T: PartialOrd + Copy>(a: T, b: T) -> Option<T> {
-    match a.partial_cmp(&b) {
-        Some(Ordering::Less) | Some(Ordering::Equal) => {
-            Some(b)
-        },
-        Some(Ordering::Greater) => {
-            Some(a)
-        },
-        None => None
-    }
-}
-
 pub fn median<T>(xs: &mut [T]) -> Result<T, MyError> where T: Copy + PartialOrd + Num + Add + Debug {
 
     let xs_len = xs.len();
@@ -123,20 +99,20 @@ pub fn median<T>(xs: &mut [T]) -> Result<T, MyError> where T: Copy + PartialOrd 
 
 }
 
-pub fn median_low<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + PartialOrd + Num + Add + Debug {
+pub fn median_low<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + Ord + Debug {
 
     let xs_len = xs.len();
     let med_idx = (xs_len as f64 / 2.0) as usize;
     if xs_len % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
         let (a, b) = get_two_med(&r);
-        Ok(partial_min(*a, *b).unwrap())
+        Ok(min(*a, *b))
     } else {
         kth_stat(xs, med_idx)
     }
 }
 
-pub fn median_high<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + PartialOrd + Num + Add + Debug {
+pub fn median_high<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + Ord + Debug {
 
     let xs_len = xs.len();
     let med_idx = (xs_len as f64 / 2.0) as usize;
@@ -144,7 +120,7 @@ pub fn median_high<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + Partial
     if xs_len % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
         let (a, b) = get_two_med(&r);
-        Ok(partial_max(*a, *b).unwrap())
+        Ok(max(*a, *b))
     } else {
         kth_stat(xs, med_idx)
     }
@@ -364,12 +340,6 @@ mod tests {
     #[test]
     fn test_kth() {
         quickcheck(ensure_statistics as fn (Vec<u32>, Vec<usize>) -> TestResult);
-    }
-
-    #[test]
-    fn test_kth_recur() {
-        let result = median(&mut [1.0,3.0,4.0,7.0]);
-        println!("{:?}", result);
     }
 
 }

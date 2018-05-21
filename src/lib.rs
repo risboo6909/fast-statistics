@@ -109,8 +109,14 @@ fn median_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
 }
 
 fn median_low_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
-    let mut ys: Vec<f64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median_low(&mut ys))
+    let mut ys = extract_ordered_floats(py, &xs)?;
+    let res =
+        match stat_funcs::median_low::<OrderedFloat<f64>>(&mut ys) {
+            Ok(res) => Ok(res.into()),
+            Err(err) => Err(err)
+        };
+
+    to_python_result(py, res)
 }
 
 fn median_low_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
@@ -124,8 +130,14 @@ fn median_low_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
 }
 
 fn median_high_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
-    let mut ys: Vec<f64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median_high(&mut ys))
+    let mut ys = extract_ordered_floats(py, &xs)?;
+    let res =
+        match stat_funcs::median_high::<OrderedFloat<f64>>(&mut ys) {
+            Ok(res) => Ok(res.into()),
+            Err(err) => Err(err)
+        };
+
+    to_python_result(py, res)
 }
 
 fn median_high_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
