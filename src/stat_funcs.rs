@@ -9,6 +9,7 @@ use std::fmt::Debug;
 use std::cmp;
 use std::ops::{Add, Div};
 use std::collections::HashMap;
+use std::hash::Hash;
 use self::num::{Zero, One, Num};
 use super::errors::MyError;
 
@@ -21,6 +22,28 @@ fn rand_range(from: usize, to: usize) -> usize {
         let mut rng = rand::thread_rng();
         from + (rng.next_u64() % (to as u64 - from as u64)) as usize
     }
+}
+
+pub fn mode<T: Send + Eq + Hash + Copy + Debug>(xs: Vec<T>) -> Result<T, MyError> {
+
+    /// Generic function uses rayon to compute mode in parallel
+
+    let pairs  = xs.into_par_iter()
+        .fold(|| HashMap::new(), |mut acc, e| {
+            (*acc.entry(e).or_insert(0)) += 1;
+            acc
+        })
+        .reduce(|| HashMap::new(), |mut acc, part| {
+            for (k, v) in part.into_iter() {
+                (*acc.entry(k).or_insert(0)) += v;
+            };
+            acc
+        });
+
+    let best = pairs.into_par_iter().max_by_key(|pair| pair.1).unwrap();
+
+    Ok(best.0)
+
 }
 
 pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
@@ -89,7 +112,7 @@ fn partial_max<T: PartialOrd + Copy>(a: T, b: T) -> Option<T> {
 pub fn median<T>(xs: &mut [T]) -> Result<T, MyError> where T: Copy + PartialOrd + Num + Add + Debug {
 
     let xs_len = xs.len();
-    let mut med_idx = (xs_len as f64 / 2.0) as usize;
+    let med_idx = (xs_len as f64 / 2.0) as usize;
 
     if xs_len % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
@@ -105,8 +128,7 @@ pub fn median<T>(xs: &mut [T]) -> Result<T, MyError> where T: Copy + PartialOrd 
 pub fn median_low<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + PartialOrd + Num + Add + Debug {
 
     let xs_len = xs.len();
-    let mut med_idx = (xs_len as f64 / 2.0) as usize;
-
+    let med_idx = (xs_len as f64 / 2.0) as usize;
     if xs_len % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
         let (a, b) = get_two_med(&r);
@@ -119,7 +141,7 @@ pub fn median_low<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + PartialO
 pub fn median_high<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + PartialOrd + Num + Add + Debug {
 
     let xs_len = xs.len();
-    let mut med_idx = (xs_len as f64 / 2.0) as usize;
+    let med_idx = (xs_len as f64 / 2.0) as usize;
 
     if xs_len % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
@@ -128,6 +150,12 @@ pub fn median_high<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + Partial
     } else {
         kth_stat(xs, med_idx)
     }
+}
+
+pub fn median_group(xs: &mut[f64]) -> Result<f64, MyError> {
+    // TODO
+    // this function works with floating-point number only
+    Ok(1.0)
 }
 
 fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, end: usize) -> usize {
