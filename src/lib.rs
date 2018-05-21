@@ -167,27 +167,3 @@ fn kth_uint_py(py: Python, xs: PyObject, k: usize) -> PyResult<u64> {
     to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
 }
 
-//fn kth_py<T>(py: Python, xs: PyObject, k: usize) -> PyResult<T> {
-//
-//    let t_str = to_python_result(py, detect_list_type(py, &xs))?;
-//
-////    match t_str.as_str() {
-////        "int" => {
-////            let mut ys = pylist_to_vec::<i32>(py, xs)?;
-////            match stat_funcs::kth_stat::<i32>(&mut ys[..], k) {
-////                Ok(x) => to_python_result(py, Box::new(Ok(NumCast::to_f64(&x).unwrap()))),
-////                Err(err) => to_python_result(py, Box::new(Err(err)))
-////            }
-////        },
-////        _ => {
-////            let mut ys = pylist_to_vec::<f64>(py, xs)?;
-////            match stat_funcs::kth_stat::<f64>(&mut ys[..], k) {
-////                Ok(x) => to_python_result(py, Box::new(Ok(),
-////                Err(err) => to_python_result(py, Box::new(Err(err)))
-////            }
-////        }
-////    }
-//
-//    Ok()
-//
-//}
