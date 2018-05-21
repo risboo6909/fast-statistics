@@ -22,9 +22,9 @@ fn rand_range(from: usize, to: usize) -> usize {
     }
 }
 
-pub fn mode<T: Send + Eq + Ord + Debug>(xs: Vec<T>) -> Result<T, MyError> {
 
-    /// Generic function uses rayon to compute mode in parallel
+/// Uses rayon to compute mode of a sequence in parallel
+pub fn mode<T: Send + Eq + Ord + Debug>(xs: Vec<T>) -> Result<T, MyError> {
 
     let pairs  = xs.into_par_iter()
         .fold(|| BTreeMap::new(), |mut acc, e| {
@@ -156,20 +156,19 @@ pub fn median_group(xs: &mut[f64]) -> Result<f64, MyError> {
     Ok(1.0)
 }
 
+/// Partition an input slice xs in-place, such that elements smaller
+/// than the pivot are at the left side and elements bigger than the pivot are
+/// at the right side.
+///
+/// # Example
+/// ```
+/// let xs = &mut [1, 5, 6, 2, 3, 7, 10, 9, 4, 8];
+/// let l = xs.len();
+/// partition(xs, 1, 0, l);
+///
+/// println!("{:?}", xs);
+/// ```
 fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, end: usize) -> usize {
-
-    /// Partition an input slice xs in-place, such that elements smaller
-    /// than the pivot are at the left side and elements bigger than the pivot are
-    /// at the right side.
-    ///
-    /// # Example
-    /// ```
-    /// let xs = &mut [1, 5, 6, 2, 3, 7, 10, 9, 4, 8];
-    /// let l = xs.len();
-    /// partition(xs, 1, 0, l);
-    ///
-    /// println!("{:?}", xs);
-    /// ```
 
     let pivot_elem = xs[pivot_idx];
 
@@ -271,18 +270,15 @@ pub fn kth_stats_recur<T: Copy + PartialOrd + Debug>(xs: &mut [T], ks: &mut [usi
     kth_stat_helper(xs, ks_vec, 0, xs_len)
 }
 
+/// Kth statistic works in amortized linear time O(n), the worst
+/// case will still be O(n^2).
+///
+/// To avoid quadratic time in the worst case, after number (N)
+/// of steps if an algorithm still didn't finish its execution
+/// try to switch to trivial heapsort and get kth element from sorted
+/// list. This will improve worst-case time to O(nlogn)
 pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> Result<T, MyError> {
-
-    /// Kth statistic works in amortized linear time O(n), the worst
-    /// case will still be O(n^2).
-    ///
-    /// To avoid quadratic time in the worst case, after number (N)
-    /// of steps if an algorithm still didn't finish its execution
-    /// try to switch to trivial heapsort and get kth element from sorted
-    /// list. This will improve worst-case time to O(nlogn)
-
     Ok(*kth_stats_recur(xs, &mut [k]).get(&k).unwrap())
-
 }
 
 
