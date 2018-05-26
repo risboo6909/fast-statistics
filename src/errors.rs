@@ -6,11 +6,15 @@ py_exception!(fast_stat, StatisticsError);
 
 #[derive(Fail, Debug)]
 pub enum MyError {
-    #[fail(display = "Integer division or modulo by zero")]
+    #[fail(display = "integer division or modulo by zero")]
     ZeroDivisionError,
-    #[fail(display = "No unique mode")]
-    NoUniqueMode,
-    #[fail(display = "Wrong type")]
+    #[fail(display = "no unique mode; found {} equally common values", modes)]
+    NoUniqueMode {
+        modes: usize,
+    },
+    #[fail(display = "no mode for empty data")]
+    NoModeEmptyData,
+    #[fail(display = "wrong type")]
     WrongTypeError,
 }
 

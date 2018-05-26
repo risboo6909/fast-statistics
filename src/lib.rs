@@ -9,6 +9,7 @@ mod errors;
 use cpython::{PyResult, Python, PyObject, PyList, PyDrop, FromPyObject};
 use errors::to_python_result;
 use ordered_float::*;
+use std::cmp::{min, max};
 
 
 py_module_initializer!(libfast_stat, initlibfast_stat, PyInit_libfast_stat, |py, m| {
@@ -111,7 +112,7 @@ fn median_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
 fn median_low_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
     let mut ys = extract_ordered_floats(py, &xs)?;
     let res =
-        match stat_funcs::median_low::<OrderedFloat<f64>>(&mut ys) {
+        match stat_funcs::median_low_high::<OrderedFloat<f64>>(&mut ys, min) {
             Ok(res) => Ok(res.into()),
             Err(err) => Err(err)
         };
@@ -121,18 +122,18 @@ fn median_low_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
 
 fn median_low_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
     let mut ys: Vec<i64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median_low(&mut ys))
+    to_python_result(py, stat_funcs::median_low_high(&mut ys, min))
 }
 
 fn median_low_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
     let mut ys: Vec<u64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median_low(&mut ys))
+    to_python_result(py, stat_funcs::median_low_high(&mut ys, min))
 }
 
 fn median_high_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
     let mut ys = extract_ordered_floats(py, &xs)?;
     let res =
-        match stat_funcs::median_high::<OrderedFloat<f64>>(&mut ys) {
+        match stat_funcs::median_low_high::<OrderedFloat<f64>>(&mut ys, max) {
             Ok(res) => Ok(res.into()),
             Err(err) => Err(err)
         };
@@ -142,12 +143,12 @@ fn median_high_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
 
 fn median_high_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
     let mut ys: Vec<i64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median_high(&mut ys))
+    to_python_result(py, stat_funcs::median_low_high(&mut ys, max))
 }
 
 fn median_high_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
     let mut ys: Vec<u64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median_high(&mut ys))
+    to_python_result(py, stat_funcs::median_low_high(&mut ys, max))
 }
 
 // mode for float, int, uint and str

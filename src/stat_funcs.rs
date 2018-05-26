@@ -4,10 +4,11 @@ extern crate num;
 
 use stat_funcs::rayon::prelude::*;
 use self::rand::Rng;
-use std::cmp::{min, max, Ordering};
+use std::cmp::{min, max, Ordering, Reverse};
 use std::fmt::Debug;
 use std::ops::{Add, Div};
 use std::collections::{HashMap, BTreeMap};
+use std::hash::Hash;
 use self::num::{Zero, One, Num};
 use super::errors::MyError;
 
@@ -22,32 +23,44 @@ fn rand_range(from: usize, to: usize) -> usize {
     }
 }
 
+pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError> {
 
-/// Uses rayon to compute mode of a sequence in parallel
-pub fn mode<T: Send + Eq + Ord + Debug>(xs: Vec<T>) -> Result<T, MyError> {
+    if xs.len() == 0 {
+        return Err(MyError::NoModeEmptyData);
+    }
 
-    let pairs  = xs.into_par_iter()
-        .fold(|| BTreeMap::new(), |mut acc, e| {
-            (*acc.entry(e).or_insert(0)) += 1;
-            acc
-        })
-        .reduce(|| BTreeMap::new(), |mut acc, part| {
-            for (k, v) in part.into_iter() {
-                (*acc.entry(k).or_insert(0)) += v;
-            };
-            acc
-        });
+    // create mapping from elements to their frequencies
+    let pairs = xs.into_iter().fold(HashMap::new(),
+                                    |mut acc, e| {
+        (*acc.entry(e).or_insert(0)) += 1;
+        acc
+    });
 
-    //let best = pairs.into_par_iter().sort_by_key(|pair| pair.1).unwrap();
+    // sort modes by their frequencies
+    let mut tmp = pairs.into_iter().collect::<Vec<(T, u64)>>();
+    tmp.sort_by_key(|x| Reverse(x.1));
 
-    let best = pairs.into_par_iter().max_by_key(|pair| pair.1).unwrap();
+    // first element must be mode element
+    let (mode, mode_val) = tmp[0].clone();
 
-    Ok(best.0)
+    // count number of elements with the same frequency as the mode element
+    let modes = tmp.into_iter()
+                         .take_while(|x| x.1 == mode_val)
+                         .count();
+
+    match modes {
+        // one unique mode found
+        1 => Ok(mode),
+        // many modes with equal frequencies found
+        _ => Err(MyError::NoUniqueMode{modes: modes}),
+    }
 
 }
 
 pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
     where for<'a> T: Add + Send + Zero + One + PartialEq + Div {
+
+    // TODO: Test performance with serial iter
 
     let (sum, len) = xs.into_par_iter()
         .fold(|| (T::zero(), T::zero()), |acc, y|
@@ -64,6 +77,8 @@ pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
 
 pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
 
+    // TODO: Test performance with serial iter
+
     let (sum, len) = xs.into_par_iter()
         .fold(|| (0.0, 0.0), |acc, y|
             (acc.0 + y.recip(), acc.1 + 1.0))
@@ -78,7 +93,7 @@ pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
 }
 
 #[inline]
-fn get_two_med<'a, T: 'a>(r: &'a HashMap<usize, T>) -> (&'a T, &'a T) {
+fn get_median_pair<'a, T: 'a>(r: &'a HashMap<usize, T>) -> (&'a T, &'a T) {
     let v = r.values().collect::<Vec<&T>>();
     (v[0], v[1])
 }
@@ -90,37 +105,23 @@ pub fn median<T>(xs: &mut [T]) -> Result<T, MyError> where T: Copy + PartialOrd 
 
     if xs_len % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
-        let (a, b) = get_two_med(&r);
+        let (a, b) = get_median_pair(&r);
         let two = T::one() + T::one();
         Ok((*a + *b) / two)
     } else {
         kth_stat(xs, med_idx)
     }
-
 }
 
-pub fn median_low<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + Ord + Debug {
-
-    let xs_len = xs.len();
-    let med_idx = (xs_len as f64 / 2.0) as usize;
-    if xs_len % 2 == 0 {
-        let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
-        let (a, b) = get_two_med(&r);
-        Ok(min(*a, *b))
-    } else {
-        kth_stat(xs, med_idx)
-    }
-}
-
-pub fn median_high<T>(xs: &mut[T]) -> Result<T, MyError> where T: Copy + Ord + Debug {
+pub fn median_low_high<T>(xs: &mut[T], f: fn(T, T) -> T) -> Result<T, MyError> where T: Copy + Ord + Debug {
 
     let xs_len = xs.len();
     let med_idx = (xs_len as f64 / 2.0) as usize;
 
     if xs_len % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
-        let (a, b) = get_two_med(&r);
-        Ok(max(*a, *b))
+        let (a, b) = get_median_pair(&r);
+        Ok(f(*a, *b))
     } else {
         kth_stat(xs, med_idx)
     }
