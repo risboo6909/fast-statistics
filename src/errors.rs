@@ -8,6 +8,8 @@ py_exception!(fast_stat, StatisticsError);
 pub enum MyError {
     #[fail(display = "integer division or modulo by zero")]
     ZeroDivisionError,
+    #[fail(display = "harmonic_mean requires at least one data point")]
+    HarmonicNoDataPoints,
     #[fail(display = "no unique mode; found {} equally common values", modes)]
     NoUniqueMode {
         modes: usize,

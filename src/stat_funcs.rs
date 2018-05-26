@@ -30,8 +30,7 @@ pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError
     }
 
     // create mapping from elements to their frequencies
-    let pairs = xs.into_iter().fold(HashMap::new(),
-                                    |mut acc, e| {
+    let pairs = xs.into_iter().fold(HashMap::new(), |mut acc, e| {
         (*acc.entry(e).or_insert(0)) += 1;
         acc
     });
@@ -44,9 +43,7 @@ pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError
     let (mode, mode_val) = tmp[0].clone();
 
     // count number of elements with the same frequency as the mode element
-    let modes = tmp.into_iter()
-                         .take_while(|x| x.1 == mode_val)
-                         .count();
+    let modes = tmp.into_iter().take_while(|x| x.1 == mode_val).count();
 
     match modes {
         // one unique mode found
@@ -58,15 +55,10 @@ pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError
 }
 
 pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
-    where for<'a> T: Add + Send + Zero + One + PartialEq + Div {
+    where for<'a> T: Add + Zero + One + PartialEq + Div {
 
-    // TODO: Test performance with serial iter
-
-    let (sum, len) = xs.into_par_iter()
-        .fold(|| (T::zero(), T::zero()), |acc, y|
-            (acc.0 + y, acc.1 + T::one()))
-        .reduce(|| (T::zero(), T::zero()), |acc, e|
-            (acc.0 + e.0, acc.1 + e.1));
+    let (sum, len) = xs.into_iter()
+                       .fold((T::zero(), T::zero()), |acc, y| (acc.0 + y, acc.1 + T::one()));
 
     if len == T::zero() {
         return Err(MyError::ZeroDivisionError);
@@ -77,17 +69,17 @@ pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
 
 pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
 
-    // TODO: Test performance with serial iter
+    if xs.len() == 0 {
+        return Err(MyError::HarmonicNoDataPoints)
+    }
+
+    // seems like parallel folding is more efficient in this case
 
     let (sum, len) = xs.into_par_iter()
         .fold(|| (0.0, 0.0), |acc, y|
             (acc.0 + y.recip(), acc.1 + 1.0))
         .reduce(|| (0.0, 0.0), |acc, e|
             (acc.0 + e.0, acc.1 + e.1));
-//
-//    if len == 0.0 {
-//        return Err(InternalStatisticsError{msg: ''});
-//    }
 
     Ok(len / sum)
 }
