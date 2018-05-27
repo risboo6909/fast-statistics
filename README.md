@@ -1,5 +1,9 @@
 # Fast-statistics
 
-Fast-statistics is a small package of various statistical methods for Python 2.7 implemented in Rust. The idea was taken from statistics package for Python 3 (see https://docs.python.org/3/library/statistics.html) which is not backported for Python 2.7. Another point is to achieve better performance with Rust instead of pure Python implementation, which is the case for Python 3.
+Fast-statistics is a small package of various statistical methods for Python 2/Python 3 implemented in Rust. The idea was taken from Python 3 statistics package (see https://docs.python.org/3/library/statistics.html). This package is currently written on pure python and doesn't have Python 2 version.
 
-I want to point out that I'm not an experienced Rust developer so PRs, comments and improvements are welcome!
+Fast-statistics implements all the functionality as the original library but it also works mostly faster and can be compiled to work with Python 2 with no troubles.
+
+There are few variants of each function usually, one for floats, one for unsigned integers and one for signed integers.
+
+Pull-requests are welcome!
