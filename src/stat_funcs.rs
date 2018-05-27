@@ -171,7 +171,6 @@ fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, 
 
 }
 
-
 fn kth_stat_helper<T: Copy + PartialOrd + Debug>(xs: &mut[T], ks: &mut Vec<usize>,
                                                  left: usize, right: usize) -> HashMap<usize, T>
 {
