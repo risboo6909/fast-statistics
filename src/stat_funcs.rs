@@ -1,17 +1,16 @@
-extern crate rayon;
-extern crate rand;
 extern crate num;
+extern crate rand;
+extern crate rayon;
 
-use stat_funcs::rayon::prelude::*;
+use self::num::{Num, One, Zero};
 use self::rand::Rng;
-use std::cmp::{min, max, Ordering, Reverse};
-use std::fmt::Debug;
-use std::ops::{Add, Div};
-use std::collections::{HashMap, BTreeMap};
-use std::hash::Hash;
-use self::num::{Zero, One, Num};
 use super::errors::MyError;
-
+use stat_funcs::rayon::prelude::*;
+use std::cmp::{max, min, Ordering, Reverse};
+use std::collections::HashMap;
+use std::fmt::Debug;
+use std::hash::Hash;
+use std::ops::{Add, Div};
 
 #[inline]
 fn rand_range(from: usize, to: usize) -> usize {
@@ -24,7 +23,6 @@ fn rand_range(from: usize, to: usize) -> usize {
 }
 
 pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError> {
-
     if xs.len() == 0 {
         return Err(MyError::NoModeEmptyData);
     }
@@ -49,16 +47,17 @@ pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError
         // one unique mode found
         1 => Ok(mode),
         // many modes with equal frequencies found
-        _ => Err(MyError::NoUniqueMode{modes: modes}),
+        _ => Err(MyError::NoUniqueMode { modes: modes }),
     }
-
 }
 
 pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
-    where for<'a> T: Add + Zero + One + PartialEq + Div {
-
-    let (sum, len) = xs.into_iter()
-                       .fold((T::zero(), T::zero()), |acc, y| (acc.0 + y, acc.1 + T::one()));
+where
+    for<'a> T: Add + Zero + One + PartialEq + Div,
+{
+    let (sum, len) = xs.into_iter().fold((T::zero(), T::zero()), |acc, y| {
+        (acc.0 + y, acc.1 + T::one())
+    });
 
     if len == T::zero() {
         return Err(MyError::ZeroDivisionError);
@@ -68,18 +67,15 @@ pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
 }
 
 pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
-
     if xs.len() == 0 {
-        return Err(MyError::HarmonicNoDataPoints)
+        return Err(MyError::HarmonicNoDataPoints);
     }
 
     // seems like parallel folding is more efficient in this case
 
     let (sum, len) = xs.into_par_iter()
-        .fold(|| (0.0, 0.0), |acc, y|
-            (acc.0 + y.recip(), acc.1 + 1.0))
-        .reduce(|| (0.0, 0.0), |acc, e|
-            (acc.0 + e.0, acc.1 + e.1));
+        .fold(|| (0.0, 0.0), |acc, y| (acc.0 + y.recip(), acc.1 + 1.0))
+        .reduce(|| (0.0, 0.0), |acc, e| (acc.0 + e.0, acc.1 + e.1));
 
     Ok(len / sum)
 }
@@ -90,8 +86,10 @@ fn get_median_pair<'a, T: 'a>(r: &'a HashMap<usize, T>) -> (&'a T, &'a T) {
     (v[0], v[1])
 }
 
-pub fn median<T>(xs: &mut [T]) -> Result<T, MyError> where T: Copy + PartialOrd + Num + Add + Debug {
-
+pub fn median<T>(xs: &mut [T]) -> Result<T, MyError>
+where
+    T: Copy + PartialOrd + Num + Add + Debug,
+{
     let xs_len = xs.len();
     let med_idx = (xs_len as f64 / 2.0) as usize;
 
@@ -105,8 +103,10 @@ pub fn median<T>(xs: &mut [T]) -> Result<T, MyError> where T: Copy + PartialOrd 
     }
 }
 
-pub fn median_low_high<T>(xs: &mut[T], f: fn(T, T) -> T) -> Result<T, MyError> where T: Copy + Ord + Debug {
-
+pub fn median_low_high<T>(xs: &mut [T], f: fn(T, T) -> T) -> Result<T, MyError>
+where
+    T: Copy + Ord + Debug,
+{
     let xs_len = xs.len();
     let med_idx = (xs_len as f64 / 2.0) as usize;
 
@@ -119,7 +119,7 @@ pub fn median_low_high<T>(xs: &mut[T], f: fn(T, T) -> T) -> Result<T, MyError> w
     }
 }
 
-pub fn median_group(xs: &mut[f64]) -> Result<f64, MyError> {
+pub fn median_group(xs: &mut [f64]) -> Result<f64, MyError> {
     // TODO
     // this function works with floating-point number only
     Ok(1.0)
@@ -137,8 +137,12 @@ pub fn median_group(xs: &mut[f64]) -> Result<f64, MyError> {
 ///
 /// println!("{:?}", xs);
 /// ```
-fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, end: usize) -> usize {
-
+fn partition<T: Copy + PartialOrd>(
+    xs: &mut [T],
+    pivot_idx: usize,
+    start: usize,
+    end: usize,
+) -> usize {
     let pivot_elem = xs[pivot_idx];
 
     xs.swap(end - 1, pivot_idx);
@@ -146,7 +150,6 @@ fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, 
     let (mut i, mut j) = (start, start);
 
     loop {
-
         if j >= end - 1 {
             break;
         }
@@ -162,19 +165,19 @@ fn partition<T: Copy + PartialOrd>(xs: &mut[T], pivot_idx: usize, start: usize, 
                 i += 1;
             }
         }
-
     }
 
     xs.swap(i, j);
 
     i
-
 }
 
-fn kth_stat_helper<T: Copy + PartialOrd + Debug>(xs: &mut[T], ks: &mut Vec<usize>,
-                                                 left: usize, right: usize) -> HashMap<usize, T>
-{
-
+fn kth_stat_helper<T: Copy + PartialOrd + Debug>(
+    xs: &mut [T],
+    ks: &mut Vec<usize>,
+    left: usize,
+    right: usize,
+) -> HashMap<usize, T> {
     if left >= right || ks.len() == 0 {
         return HashMap::new();
     }
@@ -196,27 +199,27 @@ fn kth_stat_helper<T: Copy + PartialOrd + Debug>(xs: &mut[T], ks: &mut Vec<usize
         Ok(k_idx) => {
             found.insert(ks.remove(k_idx), xs[real_idx]);
             k_idx
-        },
-        Err(k_idx) => {
-            k_idx
         }
+        Err(k_idx) => k_idx,
     };
 
     if k_idx > 0 && k_idx < ks_len {
-
         // if index of pivot element was in the middle of ks list, we need 2 recursive calls
         // one to find all elements lesser than the pivot element and another one to find
         // all elements bigger than the pivot element
 
         let (ks_left, ks_right) = ks.split_at(k_idx);
         found.extend(kth_stat_helper(xs, &mut ks_left.to_vec(), left, real_idx));
-        found.extend(kth_stat_helper(xs, &mut ks_right.to_vec(), real_idx + 1, right));
-
+        found.extend(kth_stat_helper(
+            xs,
+            &mut ks_right.to_vec(),
+            real_idx + 1,
+            right,
+        ));
     } else if k_idx == 0 {
         // if the leftmost element of ks was found only one recursive call is required, because
         // it is guaranteed that no elements with smaller than k_idx position are required
         found.extend(kth_stat_helper(xs, ks, real_idx + 1, right));
-
     } else if k_idx == ks_len {
         // if the rightmost element of ks was found only one recursive call is required because
         // it is guaranteed that no elements with bigger than k_idx position are required
@@ -224,11 +227,12 @@ fn kth_stat_helper<T: Copy + PartialOrd + Debug>(xs: &mut[T], ks: &mut Vec<usize
     };
 
     found
-
 }
 
-pub fn kth_stats_recur<T: Copy + PartialOrd + Debug>(xs: &mut [T], ks: &mut [usize]) ->
-                                                                            HashMap<usize, T> {
+pub fn kth_stats_recur<T: Copy + PartialOrd + Debug>(
+    xs: &mut [T],
+    ks: &mut [usize],
+) -> HashMap<usize, T> {
     let xs_len = xs.len();
     let ks_vec = &mut ks.to_vec();
 
@@ -249,26 +253,24 @@ pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> Result<
     Ok(*kth_stats_recur(xs, &mut [k]).get(&k).unwrap())
 }
 
-
 #[cfg(test)]
 mod tests {
     extern crate quickcheck;
 
-    use stat_funcs::{partition, kth_stats_recur, rand_range, median};
     use self::quickcheck::{quickcheck, TestResult};
+    use stat_funcs::{kth_stats_recur, median, partition, rand_range};
 
     fn is_partitioned<T: Copy + PartialOrd>(xs: &[T], pivot_elem: T) -> bool {
         match xs.iter().position(|&x| x == pivot_elem) {
             Some(pos) => {
                 let left = &xs[..pos];
                 let right = &xs[pos..];
-                if left.iter().all(|x| x < &pivot_elem) &&
-                    right.iter().all(|x| x >= &pivot_elem) {
+                if left.iter().all(|x| x < &pivot_elem) && right.iter().all(|x| x >= &pivot_elem) {
                     return true;
                 }
                 return false;
-            },
-            None => panic!("Error, no pivot element has been found!")
+            }
+            None => panic!("Error, no pivot element has been found!"),
         }
     }
 
@@ -287,7 +289,6 @@ mod tests {
     }
 
     fn ensure_statistics(mut xs: Vec<u32>, mut ks: Vec<usize>) -> TestResult {
-
         let len_xs = xs.len();
         let len_ks = ks.len();
 
@@ -296,7 +297,6 @@ mod tests {
         } else if len_ks >= len_xs {
             TestResult::discard()
         } else {
-
             // ensure all ks indices fit into the source vector bounds
             for k in &ks {
                 if k >= &len_xs {
@@ -326,12 +326,12 @@ mod tests {
 
     #[test]
     fn test_partition() {
-        quickcheck(ensure_partitioned as fn (Vec<u32>, usize) -> TestResult);
+        quickcheck(ensure_partitioned as fn(Vec<u32>, usize) -> TestResult);
     }
 
     #[test]
     fn test_kth() {
-        quickcheck(ensure_statistics as fn (Vec<u32>, Vec<usize>) -> TestResult);
+        quickcheck(ensure_statistics as fn(Vec<u32>, Vec<usize>) -> TestResult);
     }
 
 }
