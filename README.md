@@ -4,6 +4,6 @@ Fast-statistics is a small package of various statistical methods for Python 2/P
 
 Fast-statistics implements all the functionality as the original library but it also works mostly faster and can be compiled to work with Python 2 with no troubles.
 
-There are few variants of each function usually, one for floats, one for unsigned integers and one for signed integers.
+There are few variants of each function usually exist, one for floats, one for unsigned integers and one for signed integers.
 
 Pull-requests are welcome!
