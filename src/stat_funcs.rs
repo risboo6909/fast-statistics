@@ -73,6 +73,8 @@ pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
 
     // seems like parallel folding is more efficient in this case
 
+    // TODO: add exception on negative numbers
+
     let (sum, len) = xs.into_par_iter()
         .fold(|| (0.0, 0.0), |acc, y| (acc.0 + y.recip(), acc.1 + 1.0))
         .reduce(|| (0.0, 0.0), |acc, e| (acc.0 + e.0, acc.1 + e.1));
