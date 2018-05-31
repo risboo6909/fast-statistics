@@ -1,11 +1,9 @@
 extern crate num;
 extern crate rand;
-extern crate rayon;
 
 use self::num::{Num, One, Zero};
 use self::rand::Rng;
 use super::errors::MyError;
-use stat_funcs::rayon::prelude::*;
 use std::cmp::{max, min, Ordering, Reverse};
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -71,15 +69,19 @@ pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
         return Err(MyError::HarmonicNoDataPoints);
     }
 
-    // seems like parallel folding is more efficient in this case
+    let result = xs.into_iter().try_fold((0.0, 0.0), |acc, e| {
+        if e >= 0.0 {
+            Some((acc.0 + e.recip(), acc.1 + 1.0))
+        } else {
+            None
+        }
+    });
 
-    // TODO: add exception on negative numbers
+    match result {
+        Some((sum, len)) => Ok(len / sum),
+        None => Err(MyError::HarmonicNegatives)
+    }
 
-    let (sum, len) = xs.into_par_iter()
-        .fold(|| (0.0, 0.0), |acc, y| (acc.0 + y.recip(), acc.1 + 1.0))
-        .reduce(|| (0.0, 0.0), |acc, e| (acc.0 + e.0, acc.1 + e.1));
-
-    Ok(len / sum)
 }
 
 #[inline]

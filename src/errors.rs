@@ -8,6 +8,8 @@ pub enum MyError {
     ZeroDivisionError,
     #[fail(display = "harmonic_mean requires at least one data point")]
     HarmonicNoDataPoints,
+    #[fail(display = "harmonic mean does not support negative values")]
+    HarmonicNegatives,
     #[fail(display = "no unique mode; found {} equally common values", modes)]
     NoUniqueMode { modes: usize },
     #[fail(display = "no mode for empty data")]
