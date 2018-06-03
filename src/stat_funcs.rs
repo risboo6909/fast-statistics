@@ -123,9 +123,19 @@ where
     }
 }
 
+pub fn median_low<T: Copy + Ord + Debug>(ys: &mut [T]) -> Result<T, MyError> {
+    // Helper function
+    median_low_high(ys, min)
+}
+
+pub fn median_high<T: Copy + Ord + Debug>(ys: &mut [T]) -> Result<T, MyError> {
+    // Helper function
+    median_low_high(ys, max)
+}
+
 pub fn median_group(xs: &mut [f64]) -> Result<f64, MyError> {
     // TODO
-    // this function works with floating-point number only
+    // this function works with floating-point numbers only
     Ok(1.0)
 }
 

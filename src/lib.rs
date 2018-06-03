@@ -1,3 +1,5 @@
+#![feature(nll)]
+
 #[macro_use]
 extern crate failure;
 #[macro_use]
@@ -7,7 +9,11 @@ extern crate ordered_float;
 
 mod errors;
 mod stat_funcs;
+#[macro_use]
+mod macros;
 
+use std::fmt::Debug;
+use errors::MyError;
 use cpython::{FromPyObject, PyDrop, PyList, PyObject, PyResult, Python};
 use errors::to_python_result;
 use ordered_float::*;
@@ -18,9 +24,9 @@ py_module_initializer!(
     initlibfast_stat,
     PyInit_libfast_stat,
     |py, m| {
-        m.add(py, "avg_float", py_fn!(py, avg_float_py(xs: PyObject)))?;
-        m.add(py, "avg_int", py_fn!(py, avg_int_py(xs: PyObject)))?;
-        m.add(py, "avg_uint", py_fn!(py, avg_uint_py(xs: PyObject)))?;
+        m.add(py, "avg_float", py_fn!(py, avg_num_f64_py(xs: PyObject)))?;
+        m.add(py, "avg_int", py_fn!(py, avg_num_i64_py(xs: PyObject)))?;
+        m.add(py, "avg_uint", py_fn!(py, avg_num_u64_py(xs: PyObject)))?;
 
         m.add(
             py,
@@ -31,46 +37,46 @@ py_module_initializer!(
         m.add(
             py,
             "median_float",
-            py_fn!(py, median_float_py(xs: PyObject)),
+            py_fn!(py, median_f64_py(xs: PyObject)),
         )?;
-        m.add(py, "median_int", py_fn!(py, median_int_py(xs: PyObject)))?;
-        m.add(py, "median_uint", py_fn!(py, median_uint_py(xs: PyObject)))?;
+        m.add(py, "median_int", py_fn!(py, median_i64_py(xs: PyObject)))?;
+        m.add(py, "median_uint", py_fn!(py, median_u64_py(xs: PyObject)))?;
 
         m.add(
             py,
             "median_low_float",
-            py_fn!(py, median_low_float_py(xs: PyObject)),
+            py_fn!(py, median_low_f64_py(xs: PyObject)),
         )?;
         m.add(
             py,
             "median_low_int",
-            py_fn!(py, median_low_int_py(xs: PyObject)),
+            py_fn!(py, median_low_i64_py(xs: PyObject)),
         )?;
         m.add(
             py,
             "median_low_uint",
-            py_fn!(py, median_low_uint_py(xs: PyObject)),
+            py_fn!(py, median_low_u64_py(xs: PyObject)),
         )?;
 
         m.add(
             py,
             "median_high_float",
-            py_fn!(py, median_high_float_py(xs: PyObject)),
+            py_fn!(py, median_high_f64_py(xs: PyObject)),
         )?;
         m.add(
             py,
             "median_high_int",
-            py_fn!(py, median_high_int_py(xs: PyObject)),
+            py_fn!(py, median_high_i64_py(xs: PyObject)),
         )?;
         m.add(
             py,
             "median_high_uint",
-            py_fn!(py, median_high_uint_py(xs: PyObject)),
+            py_fn!(py, median_high_u64_py(xs: PyObject)),
         )?;
 
         m.add(py, "mode_float", py_fn!(py, mode_float_py(xs: PyObject)))?;
-        m.add(py, "mode_int", py_fn!(py, mode_int_py(xs: PyObject)))?;
-        m.add(py, "mode_uint", py_fn!(py, mode_uint_py(xs: PyObject)))?;
+        m.add(py, "mode_int", py_fn!(py, mode_i64_py(xs: PyObject)))?;
+        m.add(py, "mode_uint", py_fn!(py, mode_u64_py(xs: PyObject)))?;
         m.add(py, "mode_str", py_fn!(py, mode_str_py(xs: PyObject)))?;
 
         //    m.add(py, "kth_element", py_fn!(py, kth_py(xs: PyObject, k: usize)))?;
@@ -120,49 +126,19 @@ fn extract_ordered_floats<'a>(py: Python, obj: &'a PyObject) -> PyResult<Vec<Ord
 }
 
 // Average functions for float, int and uint
-
-fn avg_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
-    let ys: Vec<f64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::avg_num(ys))
-}
-
-fn avg_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
-    let ys: Vec<i64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::avg_num(ys))
-}
-
-fn avg_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
-    let ys: Vec<u64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::avg_num(ys))
-}
+expander!(avg_num,
+         (avg_num_f64_py, f64), (avg_num_i64_py, i64), (avg_num_u64_py, u64));
 
 // Harmonic mean has a meaning for floats only
-
-fn harmonic_mean_py(py: Python, xs: PyObject) -> PyResult<f64> {
-    let ys: Vec<f64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::harmonic_mean(ys))
-}
+expander!(harmonic_mean, (harmonic_mean_py, f64));
 
 // Median, median_low and median_high
+expander_mut!(median,
+             (median_f64_py, f64), (median_i64_py, i64), (median_u64_py, u64));
 
-fn median_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
-    let mut ys: Vec<f64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median(&mut ys))
-}
-
-fn median_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
-    let mut ys: Vec<i64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median(&mut ys))
-}
-
-fn median_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
-    let mut ys: Vec<u64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median(&mut ys))
-}
-
-fn median_low_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
+fn median_low_f64_py(py: Python, xs: PyObject) -> PyResult<f64> {
     let mut ys = extract_ordered_floats(py, &xs)?;
-    let res = match stat_funcs::median_low_high::<OrderedFloat<f64>>(&mut ys, min) {
+    let res = match stat_funcs::median_low::<OrderedFloat<f64>>(&mut ys) {
         Ok(res) => Ok(res.into()),
         Err(err) => Err(err),
     };
@@ -170,19 +146,11 @@ fn median_low_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
     to_python_result(py, res)
 }
 
-fn median_low_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
-    let mut ys: Vec<i64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median_low_high(&mut ys, min))
-}
+expander_mut!(median_low, (median_low_i64_py, i64), (median_low_u64_py, u64));
 
-fn median_low_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
-    let mut ys: Vec<u64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median_low_high(&mut ys, min))
-}
-
-fn median_high_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
+fn median_high_f64_py(py: Python, xs: PyObject) -> PyResult<f64> {
     let mut ys = extract_ordered_floats(py, &xs)?;
-    let res = match stat_funcs::median_low_high::<OrderedFloat<f64>>(&mut ys, max) {
+    let res = match stat_funcs::median_high::<OrderedFloat<f64>>(&mut ys) {
         Ok(res) => Ok(res.into()),
         Err(err) => Err(err),
     };
@@ -190,15 +158,7 @@ fn median_high_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
     to_python_result(py, res)
 }
 
-fn median_high_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
-    let mut ys: Vec<i64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median_low_high(&mut ys, max))
-}
-
-fn median_high_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
-    let mut ys: Vec<u64> = pylist_to_vec(py, xs)?;
-    to_python_result(py, stat_funcs::median_low_high(&mut ys, max))
-}
+expander_mut!(median_high, (median_high_i64_py, i64), (median_high_u64_py, u64));
 
 // mode for float, int, uint and str
 
@@ -213,20 +173,8 @@ fn mode_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
     to_python_result(py, res)
 }
 
-fn mode_int_py(py: Python, xs: PyObject) -> PyResult<i64> {
-    let ys = pylist_to_vec::<i64>(py, xs)?;
-    to_python_result(py, stat_funcs::mode(ys))
-}
-
-fn mode_uint_py(py: Python, xs: PyObject) -> PyResult<u64> {
-    let ys = pylist_to_vec::<u64>(py, xs)?;
-    to_python_result(py, stat_funcs::mode(ys))
-}
-
-fn mode_str_py(py: Python, xs: PyObject) -> PyResult<String> {
-    let ys = pylist_to_vec::<String>(py, xs)?;
-    to_python_result(py, stat_funcs::mode(ys))
-}
+expander!(mode,
+         (mode_str_py, String), (mode_i64_py, i64), (mode_u64_py, u64));
 
 // k-th order statistic for float, int and uint
 
