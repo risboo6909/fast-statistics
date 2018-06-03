@@ -107,7 +107,7 @@ where
     }
 }
 
-pub fn median_low_high<T>(xs: &mut [T], f: fn(T, T) -> T) -> Result<T, MyError>
+fn median_low_high<T>(xs: &mut [T], f: fn(T, T) -> T) -> Result<T, MyError>
 where
     T: Copy + Ord + Debug,
 {
