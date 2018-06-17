@@ -14,6 +14,8 @@ pub enum MyError {
     NoUniqueMode { modes: usize },
     #[fail(display = "no mode for empty data")]
     NoModeEmptyData,
+    #[fail(display = "variance requires at least two data points")]
+    NoEnoughDataVariance,
     #[fail(display = "wrong type")]
     WrongTypeError,
 }

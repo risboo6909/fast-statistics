@@ -1,14 +1,14 @@
 extern crate num;
 extern crate rand;
 
-use self::num::{Num, One, Zero};
+use self::num::{Num, One, Zero, FromPrimitive};
 use self::rand::Rng;
 use super::errors::MyError;
 use std::cmp::{max, min, Ordering, Reverse};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::{Add, Div};
+use std::ops::{Add, Div, Sub, Mul};
 
 #[inline]
 fn rand_range(from: usize, to: usize) -> usize {
@@ -47,21 +47,6 @@ pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError
         // many modes with equal frequencies found
         _ => Err(MyError::NoUniqueMode { modes: modes }),
     }
-}
-
-pub fn avg_num<T>(xs: Vec<T>) -> Result<<T as Div>::Output, MyError>
-where
-    for<'a> T: Add + Zero + One + PartialEq + Div,
-{
-    let (sum, len) = xs.into_iter().fold((T::zero(), T::zero()), |acc, y| {
-        (acc.0 + y, acc.1 + T::one())
-    });
-
-    if len == T::zero() {
-        return Err(MyError::ZeroDivisionError);
-    }
-
-    Ok(sum / len)
 }
 
 pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
@@ -139,6 +124,87 @@ pub fn median_group(xs: &mut [f64]) -> Result<f64, MyError> {
     Ok(1.0)
 }
 
+
+/// Naive implementations of variance/mean computation suffer from a lack of precision
+/// therefor more advanced and much more accurate technique will be used, see:
+///
+/// https://math.stackexchange.com/questions/20593/calculate-variance-from-a-stream-of-sample-values
+/// https://www.johndcook.com/blog/standard_deviation/
+///
+/// for details
+#[inline]
+#[allow(unused_mut)]
+fn running_stat<T>() -> impl FnMut(T) -> (T, T)
+    where T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
+             Div<T, Output = T> + Add<T, Output = T> {
+
+    let mut m_n = 1;
+
+    let mut old_m = T::zero();
+    let mut old_s = T::zero();
+
+    return move |x: T| {
+
+        let new_m;
+        let new_s;
+
+        if m_n == 1 {
+            new_s = T::zero();
+            old_s = T::zero();
+
+            old_m = x;
+            new_m = x;
+        } else {
+            let common_diff = x - old_m;
+
+            new_m = old_m + common_diff / T::from_usize(m_n).unwrap();
+            new_s = old_s + common_diff * (x - new_m);
+
+            old_m = new_m;
+            old_s = new_s;
+        }
+
+        m_n += 1;
+
+        (new_m, new_s)
+
+    };
+
+}
+
+pub fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
+    where T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
+            Div<T, Output = T> + Add<T, Output = T> {
+
+    if xs.len() < 2 {
+        Err(MyError::NoEnoughDataVariance)
+    } else {
+        let mut push_one = running_stat();
+        let mut res = (T::zero(), T::zero());
+
+        for x in xs.iter() {
+            res = push_one(*x);
+        }
+
+        Ok(res.1 / T::from_usize(xs.len() - 1).unwrap())
+    }
+}
+
+pub fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
+    where T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
+    Div<T, Output = T> + Add<T, Output = T> {
+
+    let mut push_one = running_stat();
+    let mut res = (T::zero(), T::zero());
+
+    for x in xs.iter() {
+        res = push_one(*x);
+    }
+
+    Ok(res.0)
+
+}
+
 /// Partition an input slice xs in-place, such that elements smaller
 /// than the pivot are at the left side and elements bigger than the pivot are
 /// at the right side.
@@ -192,6 +258,7 @@ fn kth_stat_helper<T: Copy + PartialOrd + Debug>(
     left: usize,
     right: usize,
 ) -> HashMap<usize, T> {
+
     if left >= right || ks.len() == 0 {
         return HashMap::new();
     }
@@ -272,7 +339,7 @@ mod tests {
     extern crate quickcheck;
 
     use self::quickcheck::{quickcheck, TestResult};
-    use stat_funcs::{kth_stats_recur, median, partition, rand_range};
+    use stat_funcs::{kth_stats_recur, median, partition, rand_range, variance, mean};
 
     fn is_partitioned<T: Copy + PartialOrd>(xs: &[T], pivot_elem: T) -> bool {
         match xs.iter().position(|&x| x == pivot_elem) {
@@ -346,6 +413,31 @@ mod tests {
     #[test]
     fn test_kth() {
         quickcheck(ensure_statistics as fn(Vec<u32>, Vec<usize>) -> TestResult);
+    }
+
+    #[test]
+    fn test_variance() {
+
+        let input: Vec<f64> = vec![];
+        assert!(variance(input).is_err());
+
+        let input = vec![2.75];
+        assert!(variance(input).is_err());
+
+        let input = vec![2.75, 1.75, 1.25, 0.25, 0.5, 1.25, 3.5];
+        assert_eq!(((variance(input).unwrap() * 1000.0) as f64).round() / 1000.0, 1.3720);
+
+        let input = vec![27.5, 30.25, 30.25, 34.5, 41.75];
+        assert_eq!(((variance(input).unwrap() * 10000.0) as f64).round() / 10000.0, 31.0188);
+
+    }
+
+    #[test]
+    fn test_mean() {
+
+        let input = vec![2.0, 3.0];
+        assert_eq!(mean(input).unwrap(), 2.5);
+
     }
 
 }

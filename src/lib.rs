@@ -17,16 +17,20 @@ use errors::MyError;
 use cpython::{FromPyObject, PyDrop, PyList, PyObject, PyResult, Python};
 use errors::to_python_result;
 use ordered_float::*;
-use std::cmp::{max, min};
 
 py_module_initializer!(
     libfast_stat,
     initlibfast_stat,
     PyInit_libfast_stat,
     |py, m| {
-        m.add(py, "avg_float", py_fn!(py, avg_num_f64_py(xs: PyObject)))?;
-        m.add(py, "avg_int", py_fn!(py, avg_num_i64_py(xs: PyObject)))?;
-        m.add(py, "avg_uint", py_fn!(py, avg_num_u64_py(xs: PyObject)))?;
+
+        m.add(py, "mean_float", py_fn!(py, mean_f64_py(xs: PyObject)))?;
+        m.add(py, "mean_int", py_fn!(py, mean_i64_py(xs: PyObject)))?;
+        m.add(py, "mean_uint", py_fn!(py, mean_u64_py(xs: PyObject)))?;
+
+        m.add(py, "variance_float", py_fn!(py, variance_f64_py(xs: PyObject)))?;
+        m.add(py, "variance_int", py_fn!(py, variance_i64_py(xs: PyObject)))?;
+        m.add(py, "variance_uint", py_fn!(py, variance_u64_py(xs: PyObject)))?;
 
         m.add(
             py,
@@ -125,9 +129,14 @@ fn extract_ordered_floats<'a>(py: Python, obj: &'a PyObject) -> PyResult<Vec<Ord
     Ok(v)
 }
 
+// Variance functions for float, int and uint
+expander!(variance,
+         (variance_f64_py, f64), (variance_i64_py, i64), (variance_u64_py, u64));
+
+
 // Average functions for float, int and uint
-expander!(avg_num,
-         (avg_num_f64_py, f64), (avg_num_i64_py, i64), (avg_num_u64_py, u64));
+expander!(mean,
+         (mean_f64_py, f64), (mean_i64_py, i64), (mean_u64_py, u64));
 
 // Harmonic mean has a meaning for floats only
 expander!(harmonic_mean, (harmonic_mean_py, f64));
