@@ -49,6 +49,7 @@ pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError
     }
 }
 
+// TODO: Make it generic over T
 pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
     if xs.len() == 0 {
         return Err(MyError::HarmonicNoDataPoints);
@@ -177,7 +178,7 @@ pub fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
             Div<T, Output = T> + Add<T, Output = T> {
 
     if xs.len() < 2 {
-        Err(MyError::NoEnoughDataVariance)
+        Err(MyError::NoEnoughDataForVariance)
     } else {
         let mut push_one = running_stat();
         let mut res = (T::zero(), T::zero());
@@ -194,14 +195,18 @@ pub fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
     where T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
     Div<T, Output = T> + Add<T, Output = T> {
 
-    let mut push_one = running_stat();
-    let mut res = (T::zero(), T::zero());
+    if xs.len() < 1 {
+        Err(MyError::NoEnoughDataForMean)
+    } else {
+        let mut push_one = running_stat();
+        let mut res = (T::zero(), T::zero());
 
-    for x in xs.iter() {
-        res = push_one(*x);
+        for x in xs.iter() {
+            res = push_one(*x);
+        }
+
+        Ok(res.0)
     }
-
-    Ok(res.0)
 
 }
 
@@ -435,8 +440,17 @@ mod tests {
     #[test]
     fn test_mean() {
 
+        let input: Vec<f64> = vec![];
+        assert!(mean(input).is_err());
+
+        let input = vec![2.0];
+        assert_eq!(mean(input).unwrap(), 2.0);
+
         let input = vec![2.0, 3.0];
         assert_eq!(mean(input).unwrap(), 2.5);
+
+        let input = vec![2.0, -2.0, 3.0, -3.0, 4.0, -4.0];
+        assert_eq!((mean(input).unwrap() as f64).round(), 0.0);
 
     }
 
