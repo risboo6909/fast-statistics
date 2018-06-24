@@ -1,7 +1,7 @@
 extern crate num;
 extern crate rand;
 
-use self::num::{Num, One, Zero, FromPrimitive};
+use self::num::{Num, One, Zero, FromPrimitive, Float};
 use self::rand::Rng;
 use super::errors::MyError;
 use std::cmp::{max, min, Ordering, Reverse};
@@ -49,15 +49,15 @@ pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError
     }
 }
 
-// TODO: Make it generic over T
-pub fn harmonic_mean(xs: Vec<f64>) -> Result<f64, MyError> {
+pub fn harmonic_mean<T>(xs: Vec<T>) -> Result<T, MyError> where T: Num + PartialOrd + Float {
+
     if xs.len() == 0 {
         return Err(MyError::HarmonicNoDataPoints);
     }
 
-    let result = xs.into_iter().try_fold((0.0, 0.0), |acc, e| {
-        if e >= 0.0 {
-            Some((acc.0 + e.recip(), acc.1 + 1.0))
+    let result = xs.into_iter().try_fold((T::zero(), T::zero()), |acc, e| {
+        if e >= T::zero() {
+            Some((acc.0 + e.recip(), acc.1 + T::one()))
         } else {
             None
         }

@@ -34,8 +34,13 @@ py_module_initializer!(
 
         m.add(
             py,
-            "harmonic_mean",
-            py_fn!(py, harmonic_mean_py(xs: PyObject)),
+            "harmonic_mean_float64",
+            py_fn!(py, harmonic_mean_f64_py(xs: PyObject)),
+        )?;
+        m.add(
+            py,
+            "harmonic_mean_float32",
+            py_fn!(py, harmonic_mean_f32_py(xs: PyObject)),
         )?;
 
         m.add(
@@ -139,7 +144,7 @@ expander!(mean,
          (mean_f64_py, f64), (mean_i64_py, i64), (mean_u64_py, u64));
 
 // Harmonic mean has a meaning for floats only
-expander!(harmonic_mean, (harmonic_mean_py, f64));
+expander!(harmonic_mean, (harmonic_mean_f64_py, f64), (harmonic_mean_f32_py, f32));
 
 // Median, median_low and median_high
 expander_mut!(median,
