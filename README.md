@@ -6,7 +6,10 @@ Fast-statistics is a small package of various statistical methods for Python 2/P
 
 Short answer - these sdks are great, though they are pretty heavy and complex as well. Sometimes you just need few simple ...
 
-Usually, there are few variants of each function exist, one for floating point numbers, one for unsigned integers and one for signed integers.
+Usually, there are few variants of each function exist: f64, f32, u64, u32, i64 and i32 types. Such a diversity can be explained by performance difference, f32 is sometimes faster than f64, the same statement holds for the rest, see:
+
+https://hugotunius.se/2017/12/04/rust-f64-vs-f32.html
+https://www.reddit.com/r/rust/comments/2yk5z7/why_this_rust_code_slower_than_c/
 
 Let's suppose we want to find a median of a given list of floating point numbers, we could simply write:
 ```python
