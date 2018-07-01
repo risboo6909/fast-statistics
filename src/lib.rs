@@ -29,8 +29,6 @@ py_module_initializer!(
         m.add(py, "mean_uint", py_fn!(py, mean_u64_py(xs: PyObject)))?;
 
         m.add(py, "variance_float", py_fn!(py, variance_f64_py(xs: PyObject)))?;
-        m.add(py, "variance_int", py_fn!(py, variance_i64_py(xs: PyObject)))?;
-        m.add(py, "variance_uint", py_fn!(py, variance_u64_py(xs: PyObject)))?;
 
         m.add(
             py,
@@ -136,7 +134,7 @@ fn extract_ordered_floats<'a>(py: Python, obj: &'a PyObject) -> PyResult<Vec<Ord
 
 // Variance functions for float, int and uint
 expander!(variance,
-         (variance_f64_py, f64), (variance_i64_py, i64), (variance_u64_py, u64));
+         (variance_f64_py, f64));
 
 
 // Average functions for float, int and uint

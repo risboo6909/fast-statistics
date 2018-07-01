@@ -174,8 +174,8 @@ fn running_stat<T>() -> impl FnMut(T) -> (T, T)
 }
 
 pub fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
-    where T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
-            Div<T, Output = T> + Add<T, Output = T> {
+    where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> + Div<T, Output = T> +
+    Add<T, Output = T> {
 
     if xs.len() < 2 {
         Err(MyError::NoEnoughDataForVariance)
@@ -189,6 +189,38 @@ pub fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
 
         Ok(res.1 / T::from_usize(xs.len() - 1).unwrap())
     }
+}
+
+pub fn pvariance<T>(xs: Vec<T>) -> Result<T, MyError>
+    where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> + Div<T, Output = T> +
+    Add<T, Output = T> {
+
+    if xs.len() < 2 {
+        Err(MyError::NoEnoughDataForVariance)
+    } else {
+        let mut push_one = running_stat();
+        let mut res = (T::zero(), T::zero());
+
+        for x in xs.iter() {
+            res = push_one(*x);
+        }
+
+        Ok(res.1 / T::from_usize(xs.len()).unwrap())
+    }
+}
+
+pub fn stdev<T>(xs: Vec<T>) -> Result<T, MyError>
+    where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
+             Div<T, Output = T> + Add<T, Output = T> {
+    let res = variance(xs)?;
+    Ok(res.sqrt())
+}
+
+pub fn pstdev<T>(xs: Vec<T>) -> Result<T, MyError>
+    where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
+    Div<T, Output = T> + Add<T, Output = T> {
+    let res = pvariance(xs)?;
+    Ok(res.sqrt())
 }
 
 pub fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
@@ -344,7 +376,7 @@ mod tests {
     extern crate quickcheck;
 
     use self::quickcheck::{quickcheck, TestResult};
-    use stat_funcs::{kth_stats_recur, median, partition, rand_range, variance, mean};
+    use stat_funcs::{kth_stats_recur, median, partition, rand_range, variance, pvariance, mean};
 
     fn is_partitioned<T: Copy + PartialOrd>(xs: &[T], pivot_elem: T) -> bool {
         match xs.iter().position(|&x| x == pivot_elem) {
@@ -434,6 +466,23 @@ mod tests {
 
         let input = vec![27.5, 30.25, 30.25, 34.5, 41.75];
         assert_eq!(((variance(input).unwrap() * 10000.0) as f64).round() / 10000.0, 31.0188);
+
+    }
+
+    #[test]
+    fn test_pvariance() {
+
+        let input: Vec<f64> = vec![];
+        assert!(pvariance(input).is_err());
+
+        let input = vec![2.75];
+        assert!(pvariance(input).is_err());
+
+        let input = vec![0.0, 0.25, 0.25, 1.25, 1.5, 1.75, 2.75, 3.25];
+        assert_eq!(((pvariance(input).unwrap() * 1000.0) as f64).round() / 1000.0, 1.25);
+
+        let input = vec![27.5, 30.25, 30.25, 34.5, 41.75];
+        assert_eq!(((pvariance(input).unwrap() * 10000.0) as f64).round() / 10000.0, 24.815);
 
     }
 

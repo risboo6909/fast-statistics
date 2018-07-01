@@ -16,6 +16,8 @@ pub enum MyError {
     NoModeEmptyData,
     #[fail(display = "variance requires at least two data points")]
     NoEnoughDataForVariance,
+    #[fail(display = "population variance requires at least two data points")]
+    NoEnoughDataForPopulationVariance,
     #[fail(display = "mean requires at least one data point")]
     NoEnoughDataForMean,
     #[fail(display = "wrong type")]
