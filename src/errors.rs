@@ -14,6 +14,8 @@ pub enum MyError {
     NoUniqueMode { modes: usize },
     #[fail(display = "no mode for empty data")]
     NoModeEmptyData,
+    #[fail(display = "no median for empty data")]
+    NoMedianEmptyData,
     #[fail(display = "variance requires at least two data points")]
     NoEnoughDataForVariance,
     #[fail(display = "population variance requires at least two data points")]
@@ -25,7 +27,7 @@ pub enum MyError {
 }
 
 #[inline]
-pub fn to_python_result<T>(py: Python, res: Result<T, MyError>) -> PyResult<T> {
+crate fn to_python_result<T>(py: Python<'_>, res: Result<T, MyError>) -> PyResult<T> {
     match res {
         Err(err) => Err(PyErr::new::<StatisticsError, _>(py, format!("{}", err))),
         Ok(x) => Ok(x),

@@ -1,11 +1,10 @@
-#![feature(nll)]
+#![feature(rust_2018_preview)]
+#![warn(rust_2018_idioms)]
 
 #[macro_use]
 extern crate failure;
 #[macro_use]
 extern crate cpython;
-extern crate num;
-extern crate ordered_float;
 
 mod errors;
 mod stat_funcs;
@@ -13,9 +12,9 @@ mod stat_funcs;
 mod macros;
 
 use std::fmt::Debug;
-use errors::MyError;
+use crate::errors::MyError;
 use cpython::{FromPyObject, PyDrop, PyList, PyObject, PyResult, Python};
-use errors::to_python_result;
+use crate::errors::to_python_result;
 use ordered_float::*;
 
 py_module_initializer!(
@@ -109,7 +108,7 @@ py_module_initializer!(
 );
 
 #[inline]
-fn pylist_to_vec<T>(py: Python, xs: PyObject) -> PyResult<Vec<T>>
+fn pylist_to_vec<T>(py: Python<'_>, xs: PyObject) -> PyResult<Vec<T>>
 where
     for<'a> T: FromPyObject<'a>,
 {
@@ -117,7 +116,7 @@ where
 }
 
 #[inline]
-fn extract_ordered_floats<'a>(py: Python, obj: &'a PyObject) -> PyResult<Vec<OrderedFloat<f64>>> {
+fn extract_ordered_floats<'a>(py: Python<'_>, obj: &'a PyObject) -> PyResult<Vec<OrderedFloat<f64>>> {
     let list = try!(obj.cast_as::<PyList>(py));
 
     let len = list.len(py);
@@ -150,7 +149,7 @@ expander_mut!(median,
 
 // floats have to be converted to OrderedFloats explicitly,
 // therefor can't be expanded with macros
-fn median_low_f64_py(py: Python, xs: PyObject) -> PyResult<f64> {
+fn median_low_f64_py(py: Python<'_>, xs: PyObject) -> PyResult<f64> {
     let mut ys = extract_ordered_floats(py, &xs)?;
     let res = match stat_funcs::median_low::<OrderedFloat<f64>>(&mut ys) {
         Ok(res) => Ok(res.into()),
@@ -164,7 +163,7 @@ expander_mut!(median_low, (median_low_i64_py, i64), (median_low_u64_py, u64));
 
 // floats have to be converted to OrderedFloats explicitly,
 // therefor can't be expanded with macros
-fn median_high_f64_py(py: Python, xs: PyObject) -> PyResult<f64> {
+fn median_high_f64_py(py: Python<'_>, xs: PyObject) -> PyResult<f64> {
     let mut ys = extract_ordered_floats(py, &xs)?;
     let res = match stat_funcs::median_high::<OrderedFloat<f64>>(&mut ys) {
         Ok(res) => Ok(res.into()),
@@ -180,7 +179,7 @@ expander_mut!(median_high, (median_high_i64_py, i64), (median_high_u64_py, u64))
 
 // floats have to be converted to OrderedFloats explicitly,
 // therefor can't be expanded with macros
-fn mode_float_py(py: Python, xs: PyObject) -> PyResult<f64> {
+fn mode_float_py(py: Python<'_>, xs: PyObject) -> PyResult<f64> {
     let ys = extract_ordered_floats(py, &xs)?;
     let res = match stat_funcs::mode::<OrderedFloat<f64>>(ys) {
         Ok(res) => Ok(res.into()),
@@ -195,17 +194,17 @@ expander!(mode,
 // k-th order statistic for float, int and uint
 
 // TODO: How to fold these guys?
-fn kth_float_py(py: Python, xs: PyObject, k: usize) -> PyResult<f64> {
+fn kth_float_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<f64> {
     let mut ys = pylist_to_vec::<f64>(py, xs)?;
     to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
 }
 
-fn kth_int_py(py: Python, xs: PyObject, k: usize) -> PyResult<i64> {
+fn kth_int_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<i64> {
     let mut ys = pylist_to_vec::<i64>(py, xs)?;
     to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
 }
 
-fn kth_uint_py(py: Python, xs: PyObject, k: usize) -> PyResult<u64> {
+fn kth_uint_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<u64> {
     let mut ys = pylist_to_vec::<u64>(py, xs)?;
     to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
 }

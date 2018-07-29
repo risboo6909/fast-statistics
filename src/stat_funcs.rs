@@ -1,14 +1,16 @@
-extern crate num;
-extern crate rand;
+extern crate superslice;
 
-use self::num::{Num, One, Zero, FromPrimitive, Float};
-use self::rand::Rng;
+use num::{Num, FromPrimitive, Float};
+use rand::Rng;
 use super::errors::MyError;
-use std::cmp::{max, min, Ordering, Reverse};
+use std::cmp::{max, min, Reverse};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{Add, Div, Sub, Mul};
+use self::superslice::Ext;
+use ordered_float::NotNaN;
+
 
 #[inline]
 fn rand_range(from: usize, to: usize) -> usize {
@@ -20,7 +22,7 @@ fn rand_range(from: usize, to: usize) -> usize {
     }
 }
 
-pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError> {
+crate fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError> {
     if xs.len() == 0 {
         return Err(MyError::NoModeEmptyData);
     }
@@ -49,7 +51,7 @@ pub fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError
     }
 }
 
-pub fn harmonic_mean<T>(xs: Vec<T>) -> Result<T, MyError> where T: Num + PartialOrd + Float {
+crate fn harmonic_mean<T>(xs: Vec<T>) -> Result<T, MyError> where T: Num + PartialOrd + Float {
 
     if xs.len() == 0 {
         return Err(MyError::HarmonicNoDataPoints);
@@ -76,7 +78,7 @@ fn get_median_pair<'a, T: 'a>(r: &'a HashMap<usize, T>) -> (&'a T, &'a T) {
     (v[0], v[1])
 }
 
-pub fn median<T>(xs: &mut [T]) -> Result<T, MyError>
+crate fn median<T>(xs: &mut [T]) -> Result<T, MyError>
 where
     T: Copy + PartialOrd + Num + Add + Debug,
 {
@@ -109,22 +111,49 @@ where
     }
 }
 
-pub fn median_low<T: Copy + Ord + Debug>(ys: &mut [T]) -> Result<T, MyError> {
+crate fn median_low<T: Copy + Ord + Debug>(ys: &mut [T]) -> Result<T, MyError> {
     // Helper function
     median_low_high(ys, min)
 }
 
-pub fn median_high<T: Copy + Ord + Debug>(ys: &mut [T]) -> Result<T, MyError> {
+crate fn median_high<T: Copy + Ord + Debug>(ys: &mut [T]) -> Result<T, MyError> {
     // Helper function
     median_low_high(ys, max)
 }
 
-pub fn median_group(xs: &mut [f64]) -> Result<f64, MyError> {
-    // TODO
-    // this function works with floating-point numbers only
-    Ok(1.0)
-}
+/// Compute median of grouped continuous data
+///
+/// median = L + interval * (N / 2 - CF) / F
+///
+/// L = lower limit of the median interval
+/// N = total number of data points
+/// CF = number of data points below the median interval
+/// F = number of data points in the median interval
+///
+/// see https://www.geeksforgeeks.org/python-statistics-median_grouped/ for explanation
+crate fn median_grouped(xs: &mut [NotNaN<f64>], interval: f64) -> Result<NotNaN<f64>, MyError> {
 
+    xs.sort();
+    let n = xs.len();
+
+    if n == 0 {
+        return Err(MyError::NoMedianEmptyData);
+    } else if n == 1 {
+        return Ok(xs[0]);
+    }
+
+    let x = xs[n/2];
+
+    let lower_limit = x - interval / 2.0;
+
+    let l1 = xs.lower_bound(&x);
+    let l2 = xs.upper_bound(&x) - 1;
+
+    let cf = l1;
+    let f = (l2 - l1 + 1) as f64;
+
+    Ok(lower_limit + interval * ((n as f64 / 2.0 - cf as f64) / f) as f64)
+}
 
 /// Naive implementations of variance/mean computation suffer from a lack of precision
 /// therefor more advanced and much more accurate technique will be used, see:
@@ -173,7 +202,8 @@ fn running_stat<T>() -> impl FnMut(T) -> (T, T)
 
 }
 
-pub fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
+/// Return the sample variance of input data
+crate fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
     where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> + Div<T, Output = T> +
     Add<T, Output = T> {
 
@@ -191,7 +221,8 @@ pub fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
     }
 }
 
-pub fn pvariance<T>(xs: Vec<T>) -> Result<T, MyError>
+/// Return the population variance of input data
+crate fn pvariance<T>(xs: Vec<T>) -> Result<T, MyError>
     where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> + Div<T, Output = T> +
     Add<T, Output = T> {
 
@@ -209,21 +240,23 @@ pub fn pvariance<T>(xs: Vec<T>) -> Result<T, MyError>
     }
 }
 
-pub fn stdev<T>(xs: Vec<T>) -> Result<T, MyError>
+crate fn stdev<T>(xs: Vec<T>) -> Result<T, MyError>
     where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
              Div<T, Output = T> + Add<T, Output = T> {
     let res = variance(xs)?;
+    // variance can't be a negative value no additional checks needed
     Ok(res.sqrt())
 }
 
-pub fn pstdev<T>(xs: Vec<T>) -> Result<T, MyError>
+crate fn pstdev<T>(xs: Vec<T>) -> Result<T, MyError>
     where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
     Div<T, Output = T> + Add<T, Output = T> {
     let res = pvariance(xs)?;
+    // pvariance can't be a negative value no additional checks needed
     Ok(res.sqrt())
 }
 
-pub fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
+crate fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
     where T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
     Div<T, Output = T> + Add<T, Output = T> {
 
@@ -347,7 +380,7 @@ fn kth_stat_helper<T: Copy + PartialOrd + Debug>(
     found
 }
 
-pub fn kth_stats_recur<T: Copy + PartialOrd + Debug>(
+crate fn kth_stats_recur<T: Copy + PartialOrd + Debug>(
     xs: &mut [T],
     ks: &mut [usize],
 ) -> HashMap<usize, T> {
@@ -367,7 +400,7 @@ pub fn kth_stats_recur<T: Copy + PartialOrd + Debug>(
 /// of steps if an algorithm still didn't finish its execution
 /// try to switch to trivial heapsort and get kth element from sorted
 /// list. This will improve worst-case time to O(nlogn)
-pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> Result<T, MyError> {
+crate fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> Result<T, MyError> {
     Ok(*kth_stats_recur(xs, &mut [k]).get(&k).unwrap())
 }
 
@@ -375,8 +408,10 @@ pub fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> Result<
 mod tests {
     extern crate quickcheck;
 
+    use ordered_float::*;
     use self::quickcheck::{quickcheck, TestResult};
-    use stat_funcs::{kth_stats_recur, median, partition, rand_range, variance, pvariance, mean};
+    use crate::stat_funcs::{kth_stats_recur, median, partition, rand_range, variance, pvariance,
+                            mean, median_grouped};
 
     fn is_partitioned<T: Copy + PartialOrd>(xs: &[T], pivot_elem: T) -> bool {
         match xs.iter().position(|&x| x == pivot_elem) {
@@ -390,6 +425,10 @@ mod tests {
             }
             None => panic!("Error, no pivot element has been found!"),
         }
+    }
+
+    fn into_notnans(xs: &[f64]) -> Vec<NotNaN<f64>> {
+        xs.iter().map(|x| NotNaN::new(*x).unwrap()).collect()
     }
 
     fn ensure_partitioned(mut xs: Vec<u32>, pivot_idx: usize) -> TestResult {
@@ -501,6 +540,24 @@ mod tests {
         let input = vec![2.0, -2.0, 3.0, -3.0, 4.0, -4.0];
         assert_eq!((mean(input).unwrap() as f64).round(), 0.0);
 
+    }
+
+    #[test]
+    fn test_median_grouped() {
+        let mut converted = into_notnans(&[1.0, 2.0, 2.0, 3.0, 4.0, 4.0, 4.0, 4.0, 4.0, 5.0]);
+        let res = median_grouped(converted.as_mut_slice(), 1.0);
+        assert_eq!(*res.unwrap(), 3.7);
+
+        let mut converted = into_notnans(&[52.0, 52.0, 53.0, 54.0]);
+        let res = median_grouped(converted.as_mut_slice(), 1.0);
+        assert_eq!(*res.unwrap(), 52.5);
+
+        let mut converted = into_notnans(&[1.0, 3.0, 3.0, 5.0, 7.0]);
+        let res = median_grouped(converted.as_mut_slice(), 1.0);
+        assert_eq!(*res.unwrap(), 3.25);
+
+        let res = median_grouped(converted.as_mut_slice(), 2.0);
+        assert_eq!(*res.unwrap(), 3.5);
     }
 
 }

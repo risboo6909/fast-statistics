@@ -1,4 +1,7 @@
+cargo-features = ["edition"]
+
 [package]
+edition = '2018'
 name = "fast-statistics"
 version = "0.1.0"
 authors = ["risboo6909 <ttyv00@gmail.com>"]
@@ -8,6 +11,7 @@ rand = "0.4"
 num = "0.1"
 failure = "0.1"
 ordered-float = "0.5"
+superslice = "0.1"
 
 [dev-dependencies]
 quickcheck = "0.6"
