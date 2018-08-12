@@ -1,7 +1,7 @@
 extern crate superslice;
 
 use num::{Num, FromPrimitive, Float};
-use rand::Rng;
+use rand::{Rng, SeedableRng, XorShiftRng};
 use super::errors::MyError;
 use std::cmp::{max, min, Reverse};
 use std::collections::HashMap;
@@ -10,15 +10,22 @@ use std::hash::Hash;
 use std::ops::{Add, Div, Sub, Mul};
 use self::superslice::Ext;
 use ordered_float::NotNaN;
+use rayon::prelude::*;
+use int_hash::IntHashMap;
+
+// make it configurable as function argument?
+const KTH_SORT_THRESHOLD: f64 = 0.1 / 100.0;
 
 
 #[inline]
-fn rand_range(from: usize, to: usize) -> usize {
-    if from == to {
-        0
-    } else {
-        let mut rng = rand::thread_rng();
-        from + (rng.next_u64() % (to as u64 - from as u64)) as usize
+fn init_rand() -> impl FnMut(usize, usize) -> usize {
+    let mut rng: XorShiftRng = XorShiftRng::from_seed(rand::thread_rng().gen());
+    return move |from: usize, to: usize| -> usize {
+        if from == to {
+            0
+        } else {
+            from + (rng.next_u64() % (to as u64 - from as u64)) as usize
+        }
     }
 }
 
@@ -73,14 +80,14 @@ crate fn harmonic_mean<T>(xs: Vec<T>) -> Result<T, MyError> where T: Num + Parti
 }
 
 #[inline]
-fn get_median_pair<'a, T: 'a>(r: &'a HashMap<usize, T>) -> (&'a T, &'a T) {
+fn get_median_pair<'a, T: 'a>(r: &'a IntHashMap<usize, T>) -> (&'a T, &'a T) {
     let v = r.values().collect::<Vec<&T>>();
     (v[0], v[1])
 }
 
 crate fn median<T>(xs: &mut [T]) -> Result<T, MyError>
 where
-    T: Copy + PartialOrd + Num + Add + Debug,
+    T: Copy + PartialOrd + Num + Add + Send + Debug,
 {
     let xs_len = xs.len();
     let med_idx = (xs_len as f64 / 2.0) as usize;
@@ -97,7 +104,7 @@ where
 
 fn median_low_high<T>(xs: &mut [T], f: fn(T, T) -> T) -> Result<T, MyError>
 where
-    T: Copy + Ord + Debug,
+    T: Copy + Ord + Send + Debug,
 {
     let xs_len = xs.len();
     let med_idx = (xs_len as f64 / 2.0) as usize;
@@ -111,12 +118,12 @@ where
     }
 }
 
-crate fn median_low<T: Copy + Ord + Debug>(ys: &mut [T]) -> Result<T, MyError> {
+crate fn median_low<T: Copy + Ord + Send + Debug>(ys: &mut [T]) -> Result<T, MyError> {
     // Helper function
     median_low_high(ys, min)
 }
 
-crate fn median_high<T: Copy + Ord + Debug>(ys: &mut [T]) -> Result<T, MyError> {
+crate fn median_high<T: Copy + Ord + Send + Debug>(ys: &mut [T]) -> Result<T, MyError> {
     // Helper function
     median_low_high(ys, max)
 }
@@ -322,15 +329,33 @@ fn partition<T: Copy + PartialOrd>(
     i
 }
 
-fn kth_stat_helper<T: Copy + PartialOrd + Debug>(
+fn kth_stat_helper<T: Copy + PartialOrd + Send + Debug>(
+    rand_range: &mut impl FnMut(usize, usize) -> usize,
     xs: &mut [T],
     ks: &mut Vec<usize>,
     left: usize,
     right: usize,
-) -> HashMap<usize, T> {
+    need_sort: bool
+) -> IntHashMap<usize, T> {
+
+    let empty_hash = IntHashMap::default();
 
     if left >= right || ks.len() == 0 {
-        return HashMap::new();
+        return empty_hash;
+    }
+
+    if need_sort {
+        // sort selected array part and choose elements we need
+        let mut ys = &mut xs[left..right];
+        ys.par_sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
+
+        let mut found = empty_hash;
+
+        for elem in ks {
+            found.insert(*elem, ys[*elem - left]);
+        }
+
+        return found;
     }
 
     // choose random pivot point
@@ -340,11 +365,25 @@ fn kth_stat_helper<T: Copy + PartialOrd + Debug>(
     // the pivot and another one consists of all elements bigger than the pivot
     let real_idx = partition(xs, pivot_idx, left, right);
 
+    // assess how good an array was partitioned by analyzing sizes of its left and right half
+    let left_len = real_idx - left;
+    let right_len = right - real_idx;
+
+    // compare two halves relative size
+    let need_sort = if left_len >= right_len &&
+        (right_len as f64 / left_len as f64 <= KTH_SORT_THRESHOLD) {
+        true
+    } else if left_len as f64 / right_len as f64 <= KTH_SORT_THRESHOLD {
+        true
+    } else {
+        false
+    };
+
     let ks_len = ks.len();
-    let mut found = HashMap::new();
+    let mut found = empty_hash;
 
     // tricky part, ks - is a sorted array of statistics that we want to
-    // find, for example [10, 30, 50, 70, 99], then we will use binary search to
+    // find, for example [10, 30, 50, 70, 99, 150], then we will use binary search to
     // figure out position of pivot element in the ks list
     let k_idx = match ks.binary_search(&real_idx) {
         Ok(k_idx) => {
@@ -355,42 +394,46 @@ fn kth_stat_helper<T: Copy + PartialOrd + Debug>(
     };
 
     if k_idx > 0 && k_idx < ks_len {
-        // if index of pivot element was in the middle of ks list, we need 2 recursive calls
-        // one to find all elements lesser than the pivot element and another one to find
-        // all elements bigger than the pivot element
-
+        // if index of pivot element was somewhere inside of ks list, we need 2 recursive calls
+        // one to find all the elements lesser than the pivot element and another one to find
+        // all the elements bigger than the pivot element
         let (ks_left, ks_right) = ks.split_at(k_idx);
-        found.extend(kth_stat_helper(xs, &mut ks_left.to_vec(), left, real_idx));
+
+        found.extend(kth_stat_helper(rand_range, xs, &mut ks_left.to_vec(), left, real_idx, need_sort));
         found.extend(kth_stat_helper(
+            rand_range,
             xs,
             &mut ks_right.to_vec(),
             real_idx + 1,
             right,
+            need_sort
         ));
     } else if k_idx == 0 {
         // if the leftmost element of ks was found only one recursive call is required, because
-        // it is guaranteed that no elements with smaller than k_idx position are required
-        found.extend(kth_stat_helper(xs, ks, real_idx + 1, right));
+        // it is guaranteed that there are no elements with the position smaller than k_idx
+        found.extend(kth_stat_helper(rand_range, xs, ks, real_idx + 1, right, need_sort));
     } else if k_idx == ks_len {
         // if the rightmost element of ks was found only one recursive call is required because
-        // it is guaranteed that no elements with bigger than k_idx position are required
-        found.extend(kth_stat_helper(xs, ks, left, real_idx));
+        // it is guaranteed that there are no elements with the position bigger than k_idx
+        found.extend(kth_stat_helper(rand_range, xs, ks, left, real_idx, need_sort));
     };
 
     found
 }
 
-crate fn kth_stats_recur<T: Copy + PartialOrd + Debug>(
+crate fn kth_stats_recur<T: Copy + PartialOrd + Send + Debug>(
     xs: &mut [T],
     ks: &mut [usize],
-) -> HashMap<usize, T> {
+) -> IntHashMap<usize, T> {
     let xs_len = xs.len();
     let ks_vec = &mut ks.to_vec();
 
     ks_vec.sort_unstable();
     ks_vec.dedup();
 
-    kth_stat_helper(xs, ks_vec, 0, xs_len)
+    let mut rand_range = init_rand();
+
+    kth_stat_helper(&mut rand_range, xs, ks_vec, 0, xs_len, false)
 }
 
 /// Kth statistic works in amortized linear time O(n), the worst
@@ -400,7 +443,7 @@ crate fn kth_stats_recur<T: Copy + PartialOrd + Debug>(
 /// of steps if an algorithm still didn't finish its execution
 /// try to switch to trivial heapsort and get kth element from sorted
 /// list. This will improve worst-case time to O(nlogn)
-crate fn kth_stat<T: Copy + PartialOrd + Debug>(xs: &mut [T], k: usize) -> Result<T, MyError> {
+crate fn kth_stat<T: Copy + PartialOrd + Send + Debug>(xs: &mut [T], k: usize) -> Result<T, MyError> {
     Ok(*kth_stats_recur(xs, &mut [k]).get(&k).unwrap())
 }
 
@@ -410,7 +453,7 @@ mod tests {
 
     use ordered_float::*;
     use self::quickcheck::{quickcheck, TestResult};
-    use crate::stat_funcs::{kth_stats_recur, median, partition, rand_range, variance, pvariance,
+    use crate::stat_funcs::{kth_stats_recur, median, partition, variance, pvariance,
                             mean, median_grouped};
 
     fn is_partitioned<T: Copy + PartialOrd>(xs: &[T], pivot_elem: T) -> bool {

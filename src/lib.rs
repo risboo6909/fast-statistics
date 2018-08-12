@@ -15,7 +15,9 @@ use std::fmt::Debug;
 use crate::errors::MyError;
 use cpython::{FromPyObject, PyDrop, PyList, PyObject, PyResult, Python};
 use crate::errors::to_python_result;
-use ordered_float::*;
+use ordered_float::OrderedFloat;
+use num::{Num, FromPrimitive, Float};
+
 
 py_module_initializer!(
     libfast_stat,
@@ -23,61 +25,52 @@ py_module_initializer!(
     PyInit_libfast_stat,
     |py, m| {
 
-        m.add(py, "mean_float", py_fn!(py, mean_f64_py(xs: PyObject)))?;
-        m.add(py, "mean_int", py_fn!(py, mean_i64_py(xs: PyObject)))?;
-        m.add(py, "mean_uint", py_fn!(py, mean_u64_py(xs: PyObject)))?;
-
-        m.add(py, "variance_float", py_fn!(py, variance_f64_py(xs: PyObject)))?;
-
+        m.add(py, "mean_f64", py_fn!(py, mean_f64_py(xs: PyObject)))?;
+        m.add(py, "mean_f32", py_fn!(py, mean_f32_py(xs: PyObject)))?;
+        m.add(py, "variance_f64", py_fn!(py, variance_f64_py(xs: PyObject)))?;
+        m.add(py, "variance_f32", py_fn!(py, variance_f32_py(xs: PyObject)))?;
         m.add(
             py,
-            "harmonic_mean_float64",
+            "harmonic_mean_f64",
             py_fn!(py, harmonic_mean_f64_py(xs: PyObject)),
         )?;
         m.add(
             py,
-            "harmonic_mean_float32",
+            "harmonic_mean_f32",
             py_fn!(py, harmonic_mean_f32_py(xs: PyObject)),
         )?;
 
         m.add(
             py,
-            "median_float",
+            "median_f64",
             py_fn!(py, median_f64_py(xs: PyObject)),
         )?;
-        m.add(py, "median_int", py_fn!(py, median_i64_py(xs: PyObject)))?;
-        m.add(py, "median_uint", py_fn!(py, median_u64_py(xs: PyObject)))?;
+        m.add(
+            py,
+            "median_f32",
+            py_fn!(py, median_f32_py(xs: PyObject)),
+        )?;
 
         m.add(
             py,
-            "median_low_float",
+            "median_low_f64",
             py_fn!(py, median_low_f64_py(xs: PyObject)),
         )?;
         m.add(
             py,
-            "median_low_int",
-            py_fn!(py, median_low_i64_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "median_low_uint",
-            py_fn!(py, median_low_u64_py(xs: PyObject)),
+            "median_low_f32",
+            py_fn!(py, median_low_f32_py(xs: PyObject)),
         )?;
 
         m.add(
             py,
-            "median_high_float",
+            "median_high_f64",
             py_fn!(py, median_high_f64_py(xs: PyObject)),
         )?;
         m.add(
             py,
-            "median_high_int",
-            py_fn!(py, median_high_i64_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "median_high_uint",
-            py_fn!(py, median_high_u64_py(xs: PyObject)),
+            "median_high_f32",
+            py_fn!(py, median_high_f32_py(xs: PyObject)),
         )?;
 
         m.add(py, "mode_float", py_fn!(py, mode_float_py(xs: PyObject)))?;
@@ -109,14 +102,14 @@ py_module_initializer!(
 
 #[inline]
 fn pylist_to_vec<T>(py: Python<'_>, xs: PyObject) -> PyResult<Vec<T>>
-where
-    for<'a> T: FromPyObject<'a>,
-{
+where for<'a> T: FromPyObject<'a> {
     Vec::extract(py, &xs)
 }
 
 #[inline]
-fn extract_ordered_floats<'a>(py: Python<'_>, obj: &'a PyObject) -> PyResult<Vec<OrderedFloat<f64>>> {
+fn extract_ordered_floats<T>(py: Python<'_>, obj: &PyObject) -> PyResult<Vec<OrderedFloat<T>>> where 
+    for<'a> T: Float + FromPyObject<'a> {
+
     let list = try!(obj.cast_as::<PyList>(py));
 
     let len = list.len(py);
@@ -124,7 +117,7 @@ fn extract_ordered_floats<'a>(py: Python<'_>, obj: &'a PyObject) -> PyResult<Vec
 
     for i in 0..len {
         let item = list.get_item(py, i);
-        v.push(OrderedFloat(f64::extract(py, &item)?));
+        v.push(OrderedFloat(T::extract(py, &item)?));
         item.release_ref(py);
     }
 
@@ -132,20 +125,16 @@ fn extract_ordered_floats<'a>(py: Python<'_>, obj: &'a PyObject) -> PyResult<Vec
 }
 
 // Variance functions for float, int and uint
-expander!(variance,
-         (variance_f64_py, f64));
-
+expander!(variance, (variance_f64_py, f64), (variance_f32_py, f32));
 
 // Average functions for float, int and uint
-expander!(mean,
-         (mean_f64_py, f64), (mean_i64_py, i64), (mean_u64_py, u64));
+expander!(mean, (mean_f64_py, f64), (mean_f32_py, f32));
 
 // Harmonic mean has a meaning for floats only
 expander!(harmonic_mean, (harmonic_mean_f64_py, f64), (harmonic_mean_f32_py, f32));
 
 // Median, median_low and median_high
-expander_mut!(median,
-             (median_f64_py, f64), (median_i64_py, i64), (median_u64_py, u64));
+expander_mut!(median, (median_f64_py, f64), (median_f32_py, i64));
 
 // floats have to be converted to OrderedFloats explicitly,
 // therefor can't be expanded with macros
@@ -159,7 +148,17 @@ fn median_low_f64_py(py: Python<'_>, xs: PyObject) -> PyResult<f64> {
     to_python_result(py, res)
 }
 
-expander_mut!(median_low, (median_low_i64_py, i64), (median_low_u64_py, u64));
+// floats have to be converted to OrderedFloats explicitly,
+// therefor can't be expanded with macros
+fn median_low_f32_py(py: Python<'_>, xs: PyObject) -> PyResult<f32> {
+    let mut ys = extract_ordered_floats(py, &xs)?;
+    let res = match stat_funcs::median_low::<OrderedFloat<f32>>(&mut ys) {
+        Ok(res) => Ok(res.into()),
+        Err(err) => Err(err),
+    };
+
+    to_python_result(py, res)
+}
 
 // floats have to be converted to OrderedFloats explicitly,
 // therefor can't be expanded with macros
@@ -173,7 +172,18 @@ fn median_high_f64_py(py: Python<'_>, xs: PyObject) -> PyResult<f64> {
     to_python_result(py, res)
 }
 
-expander_mut!(median_high, (median_high_i64_py, i64), (median_high_u64_py, u64));
+// floats have to be converted to OrderedFloats explicitly,
+// therefor can't be expanded with macros
+fn median_high_f32_py(py: Python<'_>, xs: PyObject) -> PyResult<f32> {
+    let mut ys = extract_ordered_floats(py, &xs)?;
+    let res = match stat_funcs::median_high::<OrderedFloat<f32>>(&mut ys) {
+        Ok(res) => Ok(res.into()),
+        Err(err) => Err(err),
+    };
+
+    to_python_result(py, res)
+}
+
 
 // Mode for float, int, uint and str
 
