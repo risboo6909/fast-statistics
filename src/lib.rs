@@ -73,27 +73,43 @@ py_module_initializer!(
             py_fn!(py, median_high_f32_py(xs: PyObject)),
         )?;
 
-        m.add(py, "mode_float", py_fn!(py, mode_float_py(xs: PyObject)))?;
-        m.add(py, "mode_int", py_fn!(py, mode_i64_py(xs: PyObject)))?;
-        m.add(py, "mode_uint", py_fn!(py, mode_u64_py(xs: PyObject)))?;
+        m.add(py, "mode_f64", py_fn!(py, mode_f64_py(xs: PyObject)))?;
+        m.add(py, "mode_f32", py_fn!(py, mode_f32_py(xs: PyObject)))?;
+        m.add(py, "mode_i64", py_fn!(py, mode_i64_py(xs: PyObject)))?;
+        m.add(py, "mode_i32", py_fn!(py, mode_i32_py(xs: PyObject)))?;
+        m.add(py, "mode_u64", py_fn!(py, mode_u64_py(xs: PyObject)))?;
+        m.add(py, "mode_u32", py_fn!(py, mode_u32_py(xs: PyObject)))?;
         m.add(py, "mode_str", py_fn!(py, mode_str_py(xs: PyObject)))?;
 
-        //    m.add(py, "kth_element", py_fn!(py, kth_py(xs: PyObject, k: usize)))?;
-
         m.add(
             py,
-            "kth_element_float",
-            py_fn!(py, kth_float_py(xs: PyObject, k: usize)),
+            "kth_elem_f64",
+            py_fn!(py, kth_elem_f64_py(xs: PyObject, k: usize)),
         )?;
         m.add(
             py,
-            "kth_element_int",
-            py_fn!(py, kth_int_py(xs: PyObject, k: usize)),
+            "kth_elem_f32",
+            py_fn!(py, kth_elem_f32_py(xs: PyObject, k: usize)),
         )?;
         m.add(
             py,
-            "kth_element_uint",
-            py_fn!(py, kth_uint_py(xs: PyObject, k: usize)),
+            "kth_elem_i64",
+            py_fn!(py, kth_elem_i64_py(xs: PyObject, k: usize)),
+        )?;
+        m.add(
+            py,
+            "kth_elem_i32",
+            py_fn!(py, kth_elem_i32_py(xs: PyObject, k: usize)),
+        )?;
+        m.add(
+            py,
+            "kth_elem_u64",
+            py_fn!(py, kth_elem_u64_py(xs: PyObject, k: usize)),
+        )?;
+        m.add(
+            py,
+            "kth_elem_u32",
+            py_fn!(py, kth_elem_u32_py(xs: PyObject, k: usize)),
         )?;
 
         Ok(())
@@ -124,16 +140,12 @@ fn extract_ordered_floats<T>(py: Python<'_>, obj: &PyObject) -> PyResult<Vec<Ord
     Ok(v)
 }
 
-// Variance functions for float, int and uint
 expander!(variance, (variance_f64_py, f64), (variance_f32_py, f32));
 
-// Average functions for float, int and uint
 expander!(mean, (mean_f64_py, f64), (mean_f32_py, f32));
 
-// Harmonic mean has a meaning for floats only
 expander!(harmonic_mean, (harmonic_mean_f64_py, f64), (harmonic_mean_f32_py, f32));
 
-// Median, median_low and median_high
 expander_mut!(median, (median_f64_py, f64), (median_f32_py, i64));
 
 // floats have to be converted to OrderedFloats explicitly,
@@ -185,11 +197,9 @@ fn median_high_f32_py(py: Python<'_>, xs: PyObject) -> PyResult<f32> {
 }
 
 
-// Mode for float, int, uint and str
-
 // floats have to be converted to OrderedFloats explicitly,
 // therefor can't be expanded with macros
-fn mode_float_py(py: Python<'_>, xs: PyObject) -> PyResult<f64> {
+fn mode_f64_py(py: Python<'_>, xs: PyObject) -> PyResult<f64> {
     let ys = extract_ordered_floats(py, &xs)?;
     let res = match stat_funcs::mode::<OrderedFloat<f64>>(ys) {
         Ok(res) => Ok(res.into()),
@@ -198,23 +208,46 @@ fn mode_float_py(py: Python<'_>, xs: PyObject) -> PyResult<f64> {
     to_python_result(py, res)
 }
 
-expander!(mode,
-         (mode_str_py, String), (mode_i64_py, i64), (mode_u64_py, u64));
+fn mode_f32_py(py: Python<'_>, xs: PyObject) -> PyResult<f32> {
+    let ys = extract_ordered_floats(py, &xs)?;
+    let res = match stat_funcs::mode::<OrderedFloat<f32>>(ys) {
+        Ok(res) => Ok(res.into()),
+        Err(err) => Err(err),
+    };
+    to_python_result(py, res)
+}
 
-// k-th order statistic for float, int and uint
+expander!(mode,
+         (mode_str_py, String), (mode_i64_py, i64), (mode_i32_py, i32), (mode_u64_py, u64),
+         (mode_u32_py, u32));
 
 // TODO: How to fold these guys?
-fn kth_float_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<f64> {
+fn kth_elem_f64_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<f64> {
     let mut ys = pylist_to_vec::<f64>(py, xs)?;
     to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
 }
 
-fn kth_int_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<i64> {
+fn kth_elem_f32_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<f32> {
+    let mut ys = pylist_to_vec::<f32>(py, xs)?;
+    to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
+}
+
+fn kth_elem_u64_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<u64> {
+    let mut ys = pylist_to_vec::<u64>(py, xs)?;
+    to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
+}
+
+fn kth_elem_u32_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<u32> {
+    let mut ys = pylist_to_vec::<u32>(py, xs)?;
+    to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
+}
+
+fn kth_elem_i64_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<i64> {
     let mut ys = pylist_to_vec::<i64>(py, xs)?;
     to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
 }
 
-fn kth_uint_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<u64> {
-    let mut ys = pylist_to_vec::<u64>(py, xs)?;
+fn kth_elem_i32_py(py: Python<'_>, xs: PyObject, k: usize) -> PyResult<i32> {
+    let mut ys = pylist_to_vec::<i32>(py, xs)?;
     to_python_result(py, stat_funcs::kth_stat(&mut ys, k))
 }

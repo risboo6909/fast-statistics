@@ -13,7 +13,9 @@ use ordered_float::NotNaN;
 use rayon::prelude::*;
 use int_hash::IntHashMap;
 
-// make it configurable as function argument?
+// this constant was empirically chosen to make kth_stat algorithm work well on various
+// input data examples.
+// TODO: Make it configurable as function argument?
 const KTH_SORT_THRESHOLD: f64 = 0.1 / 100.0;
 
 
@@ -90,7 +92,7 @@ where
     T: Copy + PartialOrd + Num + Add + Send + Debug,
 {
     let xs_len = xs.len();
-    let med_idx = (xs_len as f64 / 2.0) as usize;
+    let med_idx = (0.5 * xs_len as f64) as usize;
 
     if xs_len % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
@@ -107,7 +109,7 @@ where
     T: Copy + Ord + Send + Debug,
 {
     let xs_len = xs.len();
-    let med_idx = (xs_len as f64 / 2.0) as usize;
+    let med_idx = (0.5 * xs_len as f64) as usize;
 
     if xs_len % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
@@ -151,7 +153,7 @@ crate fn median_grouped(xs: &mut [NotNaN<f64>], interval: f64) -> Result<NotNaN<
 
     let x = xs[n/2];
 
-    let lower_limit = x - interval / 2.0;
+    let lower_limit = x - 0.5 * interval;
 
     let l1 = xs.lower_bound(&x);
     let l2 = xs.upper_bound(&x) - 1;
@@ -159,7 +161,7 @@ crate fn median_grouped(xs: &mut [NotNaN<f64>], interval: f64) -> Result<NotNaN<
     let cf = l1;
     let f = (l2 - l1 + 1) as f64;
 
-    Ok(lower_limit + interval * ((n as f64 / 2.0 - cf as f64) / f) as f64)
+    Ok(lower_limit + interval * ((0.5 * (n as f64) - cf as f64) / f) as f64)
 }
 
 /// Naive implementations of variance/mean computation suffer from a lack of precision
@@ -282,9 +284,8 @@ crate fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
 
 }
 
-/// Partition an input slice xs in-place, such that elements smaller
-/// than the pivot are at the left side and elements bigger than the pivot are
-/// at the right side.
+/// Partition input slice xs in-place, such that elements smaller than the pivot are at the
+/// left side and elements bigger than the pivot are at the right side.
 ///
 /// # Example
 /// ```
@@ -421,6 +422,11 @@ fn kth_stat_helper<T: Copy + PartialOrd + Send + Debug>(
     found
 }
 
+/// Kth statistic works in amortized linear time O(n), the worst case will still be O(n^2).
+///
+/// To avoid quadratic time in the worst case, we analyze sizes of two halves which were
+/// produced by the algorithm on each step and if one of the halves is much bigger than another
+/// one -- give up and use sort
 crate fn kth_stats_recur<T: Copy + PartialOrd + Send + Debug>(
     xs: &mut [T],
     ks: &mut [usize],
@@ -436,13 +442,6 @@ crate fn kth_stats_recur<T: Copy + PartialOrd + Send + Debug>(
     kth_stat_helper(&mut rand_range, xs, ks_vec, 0, xs_len, false)
 }
 
-/// Kth statistic works in amortized linear time O(n), the worst
-/// case will still be O(n^2).
-///
-/// To avoid quadratic time in the worst case, after number (N)
-/// of steps if an algorithm still didn't finish its execution
-/// try to switch to trivial heapsort and get kth element from sorted
-/// list. This will improve worst-case time to O(nlogn)
 crate fn kth_stat<T: Copy + PartialOrd + Send + Debug>(xs: &mut [T], k: usize) -> Result<T, MyError> {
     Ok(*kth_stats_recur(xs, &mut [k]).get(&k).unwrap())
 }
