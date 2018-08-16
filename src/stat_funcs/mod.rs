@@ -1,8 +1,10 @@
 extern crate superslice;
 
+crate mod errors;
+use self::errors::MyError;
+
 use num::{Num, FromPrimitive, Float};
 use rand::{Rng, SeedableRng, XorShiftRng};
-use super::errors::MyError;
 use std::cmp::{max, min, Reverse};
 use std::collections::HashMap;
 use std::fmt::Debug;
