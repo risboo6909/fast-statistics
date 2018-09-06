@@ -5,12 +5,16 @@
 extern crate failure;
 #[macro_use]
 extern crate cpython;
+#[macro_use]
+mod folders;
 
+mod utils;
 mod stat_funcs;
-mod helpers;
 
-use cpython::PyObject;
-use crate::helpers::*;
+use crate::utils::{extract_ordered_floats, pylist_to_vec};
+use crate::stat_funcs::errors::to_python_result;
+use cpython::{Python, PyObject, PyResult};
+use ordered_float::OrderedFloat;
 
 
 py_module_initializer!(
@@ -109,3 +113,26 @@ py_module_initializer!(
         Ok(())
     }
 );
+
+
+fold_args!(variance, (variance_f64_py => f64), (variance_f32_py => f32));
+
+fold_args!(mean, (mean_f64_py => f64), (mean_f32_py => f32));
+
+fold_args!(harmonic_mean, (harmonic_mean_f64_py => f64), (harmonic_mean_f32_py => f32));
+
+fold_args!(mut median, (median_f64_py => f64), (median_f32_py => i64));
+
+fold_args!(mode,
+          (mode_str_py => String), (mode_i64_py => i64), (mode_i32_py => i32), (mode_u64_py => u64),
+          (mode_u32_py => u32));
+
+fold_args!(mut kth_stat, (kth_elem_f64_py, [k::usize] => f64), (kth_elem_f32_py, [k::usize] => f32),
+                         (kth_elem_u64_py, [k::usize] => u64), (kth_elem_u32_py, [k::usize] => u32),
+                         (kth_elem_i64_py, [k::usize] => i64), (kth_elem_i32_py, [k::usize] => i32)
+          );
+
+fold_args!(ord mut median_low, (median_low_f32_py, f32), (median_low_f64_py, f64));
+fold_args!(ord mut median_high, (median_high_f32_py, f32), (median_high_f64_py, f64));
+
+fold_args!(ord mode, (mode_f32_py, f32), (mode_f64_py, f64));
