@@ -3,23 +3,22 @@ extern crate superslice;
 crate mod errors;
 use self::errors::MyError;
 
-use num::{Num, FromPrimitive, Float};
+use self::superslice::Ext;
+use int_hash::IntHashMap;
+use num::{Float, FromPrimitive, Num};
+use ordered_float::NotNaN;
 use rand::{Rng, SeedableRng, XorShiftRng};
+use rayon::prelude::*;
 use std::cmp::{max, min, Reverse};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::{Add, Div, Sub, Mul};
-use self::superslice::Ext;
-use ordered_float::NotNaN;
-use rayon::prelude::*;
-use int_hash::IntHashMap;
+use std::ops::{Add, Div, Mul, Sub};
 
 // this constant was empirically chosen to make kth_stat algorithm work well on various
 // input data examples.
 // TODO: Make it configurable as function argument?
 const KTH_SORT_THRESHOLD: f64 = 0.1 / 100.0;
-
 
 #[inline]
 fn init_rand() -> impl FnMut(usize, usize) -> usize {
@@ -30,7 +29,7 @@ fn init_rand() -> impl FnMut(usize, usize) -> usize {
         } else {
             from + (rng.next_u64() % (to as u64 - from as u64)) as usize
         }
-    }
+    };
 }
 
 crate fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError> {
@@ -62,8 +61,10 @@ crate fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyErr
     }
 }
 
-crate fn harmonic_mean<T>(xs: Vec<T>) -> Result<T, MyError> where T: Num + PartialOrd + Float {
-
+crate fn harmonic_mean<T>(xs: Vec<T>) -> Result<T, MyError>
+where
+    T: Num + PartialOrd + Float,
+{
     if xs.len() == 0 {
         return Err(MyError::HarmonicNoDataPoints);
     }
@@ -78,9 +79,8 @@ crate fn harmonic_mean<T>(xs: Vec<T>) -> Result<T, MyError> where T: Num + Parti
 
     match result {
         Some((sum, len)) => Ok(len / sum),
-        None => Err(MyError::HarmonicNegatives)
+        None => Err(MyError::HarmonicNegatives),
     }
-
 }
 
 #[inline]
@@ -143,7 +143,6 @@ crate fn median_high<T: Copy + Ord + Send + Debug>(ys: &mut [T]) -> Result<T, My
 ///
 /// see https://www.geeksforgeeks.org/python-statistics-median_grouped/ for explanation
 crate fn median_grouped(xs: &mut [NotNaN<f64>], interval: f64) -> Result<NotNaN<f64>, MyError> {
-
     xs.sort();
     let n = xs.len();
 
@@ -153,7 +152,7 @@ crate fn median_grouped(xs: &mut [NotNaN<f64>], interval: f64) -> Result<NotNaN<
         return Ok(xs[0]);
     }
 
-    let x = xs[n/2];
+    let x = xs[n / 2];
 
     let lower_limit = x - 0.5 * interval;
 
@@ -176,16 +175,21 @@ crate fn median_grouped(xs: &mut [NotNaN<f64>], interval: f64) -> Result<NotNaN<
 #[inline]
 #[allow(unused_mut)]
 fn running_stat<T>() -> impl FnMut(T) -> (T, T)
-    where T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
-             Div<T, Output = T> + Add<T, Output = T> {
-
+where
+    T: Num
+        + Copy
+        + FromPrimitive
+        + Mul<T, Output = T>
+        + Sub<T, Output = T>
+        + Div<T, Output = T>
+        + Add<T, Output = T>,
+{
     let mut m_n = 1;
 
     let mut old_m = T::zero();
     let mut old_s = T::zero();
 
     return move |x: T| {
-
         let new_m;
         let new_s;
 
@@ -208,16 +212,19 @@ fn running_stat<T>() -> impl FnMut(T) -> (T, T)
         m_n += 1;
 
         (new_m, new_s)
-
     };
-
 }
 
 /// Return the sample variance of input data
 crate fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
-    where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> + Div<T, Output = T> +
-    Add<T, Output = T> {
-
+where
+    T: Float
+        + FromPrimitive
+        + Mul<T, Output = T>
+        + Sub<T, Output = T>
+        + Div<T, Output = T>
+        + Add<T, Output = T>,
+{
     if xs.len() < 2 {
         Err(MyError::NoEnoughDataForVariance)
     } else {
@@ -234,9 +241,14 @@ crate fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
 
 /// Return the population variance of input data
 crate fn pvariance<T>(xs: Vec<T>) -> Result<T, MyError>
-    where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> + Div<T, Output = T> +
-    Add<T, Output = T> {
-
+where
+    T: Float
+        + FromPrimitive
+        + Mul<T, Output = T>
+        + Sub<T, Output = T>
+        + Div<T, Output = T>
+        + Add<T, Output = T>,
+{
     if xs.len() < 2 {
         Err(MyError::NoEnoughDataForVariance)
     } else {
@@ -252,25 +264,43 @@ crate fn pvariance<T>(xs: Vec<T>) -> Result<T, MyError>
 }
 
 crate fn stdev<T>(xs: Vec<T>) -> Result<T, MyError>
-    where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
-             Div<T, Output = T> + Add<T, Output = T> {
+where
+    T: Float
+        + FromPrimitive
+        + Mul<T, Output = T>
+        + Sub<T, Output = T>
+        + Div<T, Output = T>
+        + Add<T, Output = T>,
+{
     let res = variance(xs)?;
     // variance can't be a negative value no additional checks needed
     Ok(res.sqrt())
 }
 
 crate fn pstdev<T>(xs: Vec<T>) -> Result<T, MyError>
-    where T: Float + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
-    Div<T, Output = T> + Add<T, Output = T> {
+where
+    T: Float
+        + FromPrimitive
+        + Mul<T, Output = T>
+        + Sub<T, Output = T>
+        + Div<T, Output = T>
+        + Add<T, Output = T>,
+{
     let res = pvariance(xs)?;
     // pvariance can't be a negative value no additional checks needed
     Ok(res.sqrt())
 }
 
 crate fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
-    where T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Sub<T, Output = T> +
-    Div<T, Output = T> + Add<T, Output = T> {
-
+where
+    T: Num
+        + Copy
+        + FromPrimitive
+        + Mul<T, Output = T>
+        + Sub<T, Output = T>
+        + Div<T, Output = T>
+        + Add<T, Output = T>,
+{
     if xs.len() < 1 {
         Err(MyError::NoEnoughDataForMean)
     } else {
@@ -283,7 +313,6 @@ crate fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
 
         Ok(res.0)
     }
-
 }
 
 /// Partition input slice xs in-place, such that elements smaller than the pivot are at the
@@ -338,9 +367,8 @@ fn kth_stat_helper<T: Copy + PartialOrd + Send + Debug>(
     ks: &mut Vec<usize>,
     left: usize,
     right: usize,
-    need_sort: bool
+    need_sort: bool,
 ) -> IntHashMap<usize, T> {
-
     let empty_hash = IntHashMap::default();
 
     if left >= right || ks.len() == 0 {
@@ -373,14 +401,14 @@ fn kth_stat_helper<T: Copy + PartialOrd + Send + Debug>(
     let right_len = right - real_idx;
 
     // compare two halves relative size
-    let need_sort = if left_len >= right_len &&
-        (right_len as f64 / left_len as f64 <= KTH_SORT_THRESHOLD) {
-        true
-    } else if left_len as f64 / right_len as f64 <= KTH_SORT_THRESHOLD {
-        true
-    } else {
-        false
-    };
+    let need_sort =
+        if left_len >= right_len && (right_len as f64 / left_len as f64 <= KTH_SORT_THRESHOLD) {
+            true
+        } else if left_len as f64 / right_len as f64 <= KTH_SORT_THRESHOLD {
+            true
+        } else {
+            false
+        };
 
     let ks_len = ks.len();
     let mut found = empty_hash;
@@ -402,23 +430,39 @@ fn kth_stat_helper<T: Copy + PartialOrd + Send + Debug>(
         // all the elements bigger than the pivot element
         let (ks_left, ks_right) = ks.split_at(k_idx);
 
-        found.extend(kth_stat_helper(rand_range, xs, &mut ks_left.to_vec(), left, real_idx, need_sort));
+        found.extend(kth_stat_helper(
+            rand_range,
+            xs,
+            &mut ks_left.to_vec(),
+            left,
+            real_idx,
+            need_sort,
+        ));
         found.extend(kth_stat_helper(
             rand_range,
             xs,
             &mut ks_right.to_vec(),
             real_idx + 1,
             right,
-            need_sort
+            need_sort,
         ));
     } else if k_idx == 0 {
         // if the leftmost element of ks was found only one recursive call is required, because
         // it is guaranteed that there are no elements with the position smaller than k_idx
-        found.extend(kth_stat_helper(rand_range, xs, ks, real_idx + 1, right, need_sort));
+        found.extend(kth_stat_helper(
+            rand_range,
+            xs,
+            ks,
+            real_idx + 1,
+            right,
+            need_sort,
+        ));
     } else if k_idx == ks_len {
         // if the rightmost element of ks was found only one recursive call is required because
         // it is guaranteed that there are no elements with the position bigger than k_idx
-        found.extend(kth_stat_helper(rand_range, xs, ks, left, real_idx, need_sort));
+        found.extend(kth_stat_helper(
+            rand_range, xs, ks, left, real_idx, need_sort,
+        ));
     };
 
     found
@@ -444,7 +488,10 @@ crate fn kth_stats_recur<T: Copy + PartialOrd + Send + Debug>(
     kth_stat_helper(&mut rand_range, xs, ks_vec, 0, xs_len, false)
 }
 
-crate fn kth_stat<T: Copy + PartialOrd + Send + Debug>(xs: &mut [T], k: usize) -> Result<T, MyError> {
+crate fn kth_stat<T: Copy + PartialOrd + Send + Debug>(
+    xs: &mut [T],
+    k: usize,
+) -> Result<T, MyError> {
     Ok(*kth_stats_recur(xs, &mut [k]).get(&k).unwrap())
 }
 
@@ -452,10 +499,11 @@ crate fn kth_stat<T: Copy + PartialOrd + Send + Debug>(xs: &mut [T], k: usize) -
 mod tests {
     extern crate quickcheck;
 
-    use ordered_float::*;
     use self::quickcheck::{quickcheck, TestResult};
-    use crate::stat_funcs::{kth_stats_recur, median, partition, variance, pvariance,
-                            mean, median_grouped};
+    use crate::stat_funcs::{
+        kth_stats_recur, mean, median, median_grouped, partition, pvariance, variance,
+    };
+    use ordered_float::*;
 
     fn is_partitioned<T: Copy + PartialOrd>(xs: &[T], pivot_elem: T) -> bool {
         match xs.iter().position(|&x| x == pivot_elem) {
@@ -537,7 +585,6 @@ mod tests {
 
     #[test]
     fn test_variance() {
-
         let input: Vec<f64> = vec![];
         assert!(variance(input).is_err());
 
@@ -545,16 +592,20 @@ mod tests {
         assert!(variance(input).is_err());
 
         let input = vec![2.75, 1.75, 1.25, 0.25, 0.5, 1.25, 3.5];
-        assert_eq!(((variance(input).unwrap() * 1000.0) as f64).round() / 1000.0, 1.3720);
+        assert_eq!(
+            ((variance(input).unwrap() * 1000.0) as f64).round() / 1000.0,
+            1.3720
+        );
 
         let input = vec![27.5, 30.25, 30.25, 34.5, 41.75];
-        assert_eq!(((variance(input).unwrap() * 10000.0) as f64).round() / 10000.0, 31.0188);
-
+        assert_eq!(
+            ((variance(input).unwrap() * 10000.0) as f64).round() / 10000.0,
+            31.0188
+        );
     }
 
     #[test]
     fn test_pvariance() {
-
         let input: Vec<f64> = vec![];
         assert!(pvariance(input).is_err());
 
@@ -562,16 +613,20 @@ mod tests {
         assert!(pvariance(input).is_err());
 
         let input = vec![0.0, 0.25, 0.25, 1.25, 1.5, 1.75, 2.75, 3.25];
-        assert_eq!(((pvariance(input).unwrap() * 1000.0) as f64).round() / 1000.0, 1.25);
+        assert_eq!(
+            ((pvariance(input).unwrap() * 1000.0) as f64).round() / 1000.0,
+            1.25
+        );
 
         let input = vec![27.5, 30.25, 30.25, 34.5, 41.75];
-        assert_eq!(((pvariance(input).unwrap() * 10000.0) as f64).round() / 10000.0, 24.815);
-
+        assert_eq!(
+            ((pvariance(input).unwrap() * 10000.0) as f64).round() / 10000.0,
+            24.815
+        );
     }
 
     #[test]
     fn test_mean() {
-
         let input: Vec<f64> = vec![];
         assert!(mean(input).is_err());
 
@@ -583,7 +638,6 @@ mod tests {
 
         let input = vec![2.0, -2.0, 3.0, -3.0, 4.0, -4.0];
         assert_eq!((mean(input).unwrap() as f64).round(), 0.0);
-
     }
 
     #[test]

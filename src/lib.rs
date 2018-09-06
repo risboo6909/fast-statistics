@@ -8,25 +8,31 @@ extern crate cpython;
 #[macro_use]
 mod folders;
 
-mod utils;
 mod stat_funcs;
+mod utils;
 
-use crate::utils::{extract_ordered_floats, pylist_to_vec};
+use cpython::{PyObject, PyResult, Python};
 use crate::stat_funcs::errors::to_python_result;
-use cpython::{Python, PyObject, PyResult};
+use crate::utils::{extract_ordered_floats, pylist_to_vec};
 use ordered_float::OrderedFloat;
-
 
 py_module_initializer!(
     libfast_stat,
     initlibfast_stat,
     PyInit_libfast_stat,
     |py, m| {
-
         m.add(py, "mean_f64", py_fn!(py, mean_f64_py(xs: PyObject)))?;
         m.add(py, "mean_f32", py_fn!(py, mean_f32_py(xs: PyObject)))?;
-        m.add(py, "variance_f64", py_fn!(py, variance_f64_py(xs: PyObject)))?;
-        m.add(py, "variance_f32", py_fn!(py, variance_f32_py(xs: PyObject)))?;
+        m.add(
+            py,
+            "variance_f64",
+            py_fn!(py, variance_f64_py(xs: PyObject)),
+        )?;
+        m.add(
+            py,
+            "variance_f32",
+            py_fn!(py, variance_f32_py(xs: PyObject)),
+        )?;
         m.add(
             py,
             "harmonic_mean_f64",
@@ -38,16 +44,8 @@ py_module_initializer!(
             py_fn!(py, harmonic_mean_f32_py(xs: PyObject)),
         )?;
 
-        m.add(
-            py,
-            "median_f64",
-            py_fn!(py, median_f64_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "median_f32",
-            py_fn!(py, median_f32_py(xs: PyObject)),
-        )?;
+        m.add(py, "median_f64", py_fn!(py, median_f64_py(xs: PyObject)))?;
+        m.add(py, "median_f32", py_fn!(py, median_f32_py(xs: PyObject)))?;
 
         m.add(
             py,
@@ -113,7 +111,6 @@ py_module_initializer!(
         Ok(())
     }
 );
-
 
 fold_args!(variance, (variance_f64_py => f64), (variance_f32_py => f32));
 
