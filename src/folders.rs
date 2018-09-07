@@ -26,52 +26,31 @@ macro_rules! fold_args {
     //      to_python_result(py, kth_stat(ys, k))
     // }
 
-    // rust func name to be called "kth_stat" for example
+    // rust func name to be called from python, kth_stat for example
     ($rust_func_name:ident,
 
         // name of a function which will interact with both python and rust, performs conversions
         // between python and rust lists and return types
-        $( ($func_name:ident, [$($arg:ident:: $arg_type:ty),+] => $ret_type:ty) ),+) => {
+        $( ($func_name:ident, [$($arg:ident:: $arg_type:ty),*] => $ret_type:ty) ),+) => {
 
         $(
-            crate fn $func_name(py: Python<'_>, xs: PyObject, $($arg: $arg_type)+) ->
+            // generate wrapper function
+            crate fn $func_name(py: Python<'_>, xs: PyObject, $($arg: $arg_type)*) ->
                                                                         PyResult<$ret_type> {
                 let ys = pylist_to_vec(py, xs)?;
-                to_python_result(py, stat_funcs::$rust_func_name(ys, $($arg)+))
+                to_python_result(py, stat_funcs::$rust_func_name(ys, $($arg)*))
             }
         )+
 
     };
 
 
-    (mut $rust_func_name:ident, $( ($func_name:ident, [$($arg:ident:: $arg_type:ty),+] => $ret_type:ty) ),+) => {
+    (mut $rust_func_name:ident, $( ($func_name:ident, [$($arg:ident:: $arg_type:ty),*] => $ret_type:ty) ),+) => {
         $(
-            crate fn $func_name(py: Python<'_>, xs: PyObject, $($arg: $arg_type)+) ->
+            crate fn $func_name(py: Python<'_>, xs: PyObject, $($arg: $arg_type)*) ->
                                                                             PyResult<$ret_type> {
                 let mut ys = pylist_to_vec(py, xs)?;
-                to_python_result(py, stat_funcs::$rust_func_name(&mut ys, $($arg)+))
-            }
-        )+
-    };
-
-
-    // Macro rules for built-in types without additional arguments
-
-    (mut $rust_func_name:ident, $( ($func_name:ident => $ret_type:ty) ),+) => {
-        $(
-            crate fn $func_name(py: Python<'_>, xs: PyObject) -> PyResult<$ret_type> {
-                let mut ys = pylist_to_vec(py, xs)?;
-                to_python_result(py, stat_funcs::$rust_func_name(&mut ys))
-            }
-        )+
-    };
-
-
-    ($rust_func_name:ident, $( ($func_name:ident => $ret_type:ty) ),+) => {
-        $(
-            crate fn $func_name(py: Python<'_>, xs: PyObject) -> PyResult<$ret_type> {
-                let ys = pylist_to_vec(py, xs)?;
-                to_python_result(py, stat_funcs::$rust_func_name(ys))
+                to_python_result(py, stat_funcs::$rust_func_name(&mut ys, $($arg)*))
             }
         )+
     };

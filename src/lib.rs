@@ -112,17 +112,18 @@ py_module_initializer!(
     }
 );
 
-fold_args!(variance, (variance_f64_py => f64), (variance_f32_py => f32));
 
-fold_args!(mean, (mean_f64_py => f64), (mean_f32_py => f32));
+fold_args!(variance, (variance_f64_py, [] => f64), (variance_f32_py, [] => f32));
 
-fold_args!(harmonic_mean, (harmonic_mean_f64_py => f64), (harmonic_mean_f32_py => f32));
+fold_args!(mean, (mean_f64_py, [] => f64), (mean_f32_py, [] => f32));
 
-fold_args!(mut median, (median_f64_py => f64), (median_f32_py => i64));
+fold_args!(harmonic_mean, (harmonic_mean_f64_py, [] => f64), (harmonic_mean_f32_py, [] => f32));
+
+fold_args!(mut median, (median_f64_py, [] => f64), (median_f32_py, [] => i64));
 
 fold_args!(mode,
-          (mode_str_py => String), (mode_i64_py => i64), (mode_i32_py => i32), (mode_u64_py => u64),
-          (mode_u32_py => u32));
+          (mode_str_py, [] => String), (mode_i64_py, [] => i64), (mode_i32_py, [] => i32),
+          (mode_u64_py, [] => u64), (mode_u32_py, [] => u32));
 
 fold_args!(mut kth_stat, (kth_elem_f64_py, [k::usize] => f64), (kth_elem_f32_py, [k::usize] => f32),
                          (kth_elem_u64_py, [k::usize] => u64), (kth_elem_u32_py, [k::usize] => u32),
