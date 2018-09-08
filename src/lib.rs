@@ -2,19 +2,15 @@
 #![warn(rust_2018_idioms)]
 
 #[macro_use]
-extern crate failure;
-#[macro_use]
-extern crate cpython;
-#[macro_use]
-mod folders;
+mod gen_macro;
 
 mod stat_funcs;
 mod utils;
 
-use cpython::{PyObject, PyResult, Python};
 use crate::stat_funcs::errors::to_python_result;
 use crate::utils::{extract_ordered_floats, pylist_to_vec};
 use ordered_float::OrderedFloat;
+use cpython::*;
 
 py_module_initializer!(
     libfast_stat,
@@ -122,12 +118,15 @@ gen_wrapper!(harmonic_mean, (harmonic_mean_f64_py, [] => f64), (harmonic_mean_f3
 gen_wrapper!(mut median, (median_f64_py, [] => f64), (median_f32_py, [] => i64));
 
 gen_wrapper!(mode,
-          (mode_str_py, [] => String), (mode_i64_py, [] => i64), (mode_i32_py, [] => i32),
-          (mode_u64_py, [] => u64), (mode_u32_py, [] => u32));
+            (mode_str_py, [] => String), (mode_i64_py, [] => i64), (mode_i32_py, [] => i32),
+            (mode_u64_py, [] => u64), (mode_u32_py, [] => u32));
 
-gen_wrapper!(mut kth_stat, (kth_elem_f64_py, [k::usize] => f64), (kth_elem_f32_py, [k::usize] => f32),
-                         (kth_elem_u64_py, [k::usize] => u64), (kth_elem_u32_py, [k::usize] => u32),
-                         (kth_elem_i64_py, [k::usize] => i64), (kth_elem_i32_py, [k::usize] => i32)
+gen_wrapper!(mut kth_stat, (kth_elem_f64_py, [k::usize] => f64),
+                           (kth_elem_f32_py, [k::usize] => f32),
+                           (kth_elem_u64_py, [k::usize] => u64),
+                           (kth_elem_u32_py, [k::usize] => u32),
+                           (kth_elem_i64_py, [k::usize] => i64),
+                           (kth_elem_i32_py, [k::usize] => i32)
           );
 
 gen_wrapper!(ord mut median_low, (median_low_f32_py, f32), (median_low_f64_py, f64));

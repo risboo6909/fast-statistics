@@ -1,9 +1,8 @@
-extern crate superslice;
-
 crate mod errors;
+
 use self::errors::MyError;
 
-use self::superslice::Ext;
+use superslice::Ext;
 use int_hash::IntHashMap;
 use num::{Float, FromPrimitive, Num};
 use ordered_float::NotNaN;
@@ -15,9 +14,9 @@ use std::fmt::Debug;
 use std::hash::Hash;
 use std::ops::{Add, Div, Mul, Sub};
 
-// this constant was empirically chosen to make kth_stat algorithm work well on various
-// input data examples.
 // TODO: Make it configurable as function argument?
+// this constant was empirically chosen to make kth_stat algorithm work well on various input
+// data samples
 const KTH_SORT_THRESHOLD: f64 = 0.1 / 100.0;
 
 #[inline]
@@ -377,7 +376,7 @@ fn kth_stat_helper<T: Copy + PartialOrd + Send + Debug>(
 
     if need_sort {
         // sort selected array part and choose elements we need
-        let mut ys = &mut xs[left..right];
+        let ys = &mut xs[left..right];
         ys.par_sort_unstable_by(|a, b| a.partial_cmp(b).unwrap());
 
         let mut found = empty_hash;
@@ -497,11 +496,9 @@ crate fn kth_stat<T: Copy + PartialOrd + Send + Debug>(
 
 #[cfg(test)]
 mod tests {
-    extern crate quickcheck;
-
-    use self::quickcheck::{quickcheck, TestResult};
+    use quickcheck::{quickcheck, TestResult};
     use crate::stat_funcs::{
-        kth_stats_recur, mean, median, median_grouped, partition, pvariance, variance,
+        kth_stats_recur, mean, median_grouped, partition, pvariance, variance,
     };
     use ordered_float::*;
 

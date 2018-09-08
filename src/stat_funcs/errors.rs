@@ -1,9 +1,10 @@
-use cpython::{PyErr, PyResult, Python};
+use cpython::*;
+use failure::Fail;
 
 py_exception!(fast_stat, StatisticsError);
 
 #[derive(Fail, Debug)]
-pub enum MyError {
+crate enum MyError {
     #[fail(display = "integer division or modulo by zero")]
     ZeroDivisionError,
     #[fail(display = "harmonic_mean requires at least one data point")]
