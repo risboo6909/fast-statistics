@@ -12,7 +12,7 @@ use std::cmp::{max, min, Reverse};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul};
 
 // TODO: Make it configurable as function argument?
 // this constant was empirically chosen to make kth_stat algorithm work well on various input
@@ -90,16 +90,20 @@ fn get_median_pair<'a, T: 'a>(r: &'a IntHashMap<usize, T>) -> (&'a T, &'a T) {
 
 crate fn median<T>(xs: &mut [T]) -> Result<T, MyError>
 where
-    T: Copy + PartialOrd + Num + Add + Send + Debug,
+    T: Copy + PartialOrd + Num + Add + Send + Debug + From<f32>,
 {
-    let xs_len = xs.len();
-    let med_idx = (0.5 * xs_len as f64) as usize;
+    let n = xs.len();
 
-    if xs_len % 2 == 0 {
+    if n == 0 {
+        return Err(MyError::NoMedianEmptyData);
+    }
+
+    let med_idx = (0.5 * n as f64) as usize;
+
+    if n % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
         let (a, b) = get_median_pair(&r);
-        let two = T::one() + T::one();
-        Ok((*a + *b) / two)
+        Ok((*a + *b) / T::from(2.0))
     } else {
         kth_stat(xs, med_idx)
     }
@@ -141,7 +145,7 @@ crate fn median_high<T: Copy + Ord + Send + Debug>(ys: &mut [T]) -> Result<T, My
 /// F = number of data points in the median interval
 ///
 /// see https://www.geeksforgeeks.org/python-statistics-median_grouped/ for explanation
-crate fn median_grouped(xs: &mut [NotNaN<f64>], interval: f64) -> Result<NotNaN<f64>, MyError> {
+crate fn median_grouped(xs: &mut [NotNaN<f64>], interval: usize) -> Result<NotNaN<f64>, MyError> {
     xs.sort();
     let n = xs.len();
 
@@ -153,7 +157,7 @@ crate fn median_grouped(xs: &mut [NotNaN<f64>], interval: f64) -> Result<NotNaN<
 
     let x = xs[n / 2];
 
-    let lower_limit = x - 0.5 * interval;
+    let lower_limit = x - 0.5 * interval as f64;
 
     let l1 = xs.lower_bound(&x);
     let l2 = xs.upper_bound(&x) - 1;
@@ -161,7 +165,7 @@ crate fn median_grouped(xs: &mut [NotNaN<f64>], interval: f64) -> Result<NotNaN<
     let cf = l1;
     let f = (l2 - l1 + 1) as f64;
 
-    Ok(lower_limit + interval * ((0.5 * (n as f64) - cf as f64) / f) as f64)
+    Ok(lower_limit + interval as f64 * ((0.5 * (n as f64) - cf as f64) / f) as f64)
 }
 
 /// Naive implementations of variance/mean computation suffer from a lack of precision
@@ -179,7 +183,6 @@ where
         + Copy
         + FromPrimitive
         + Mul<T, Output = T>
-        + Sub<T, Output = T>
         + Div<T, Output = T>
         + Add<T, Output = T>,
 {
@@ -220,7 +223,6 @@ where
     T: Float
         + FromPrimitive
         + Mul<T, Output = T>
-        + Sub<T, Output = T>
         + Div<T, Output = T>
         + Add<T, Output = T>,
 {
@@ -244,12 +246,11 @@ where
     T: Float
         + FromPrimitive
         + Mul<T, Output = T>
-        + Sub<T, Output = T>
         + Div<T, Output = T>
         + Add<T, Output = T>,
 {
-    if xs.len() < 2 {
-        Err(MyError::NoEnoughDataForVariance)
+    if xs.len() < 1 {
+        Err(MyError::NoEnoughDataForPopulationVariance)
     } else {
         let mut push_one = running_stat();
         let mut res = (T::zero(), T::zero());
@@ -267,7 +268,6 @@ where
     T: Float
         + FromPrimitive
         + Mul<T, Output = T>
-        + Sub<T, Output = T>
         + Div<T, Output = T>
         + Add<T, Output = T>,
 {
@@ -281,7 +281,6 @@ where
     T: Float
         + FromPrimitive
         + Mul<T, Output = T>
-        + Sub<T, Output = T>
         + Div<T, Output = T>
         + Add<T, Output = T>,
 {
@@ -296,7 +295,6 @@ where
         + Copy
         + FromPrimitive
         + Mul<T, Output = T>
-        + Sub<T, Output = T>
         + Div<T, Output = T>
         + Add<T, Output = T>,
 {
@@ -502,6 +500,13 @@ mod tests {
     };
     use ordered_float::*;
 
+    // round number up to $digits digits, convenient for some tests below
+    macro_rules! round {
+        ($x: expr, $digits: expr) => {
+            (($x * 10f64.powi($digits)) as f64).round() / 10f64.powi($digits)
+        };
+    }
+
     fn is_partitioned<T: Copy + PartialOrd>(xs: &[T], pivot_elem: T) -> bool {
         match xs.iter().position(|&x| x == pivot_elem) {
             Some(pos) => {
@@ -589,16 +594,10 @@ mod tests {
         assert!(variance(input).is_err());
 
         let input = vec![2.75, 1.75, 1.25, 0.25, 0.5, 1.25, 3.5];
-        assert_eq!(
-            ((variance(input).unwrap() * 1000.0) as f64).round() / 1000.0,
-            1.3720
-        );
+        assert_eq!(round!(variance(input).unwrap(), 4), 1.3720);
 
         let input = vec![27.5, 30.25, 30.25, 34.5, 41.75];
-        assert_eq!(
-            ((variance(input).unwrap() * 10000.0) as f64).round() / 10000.0,
-            31.0188
-        );
+        assert_eq!(round!(variance(input).unwrap(), 4), 31.0188);
     }
 
     #[test]
@@ -607,19 +606,14 @@ mod tests {
         assert!(pvariance(input).is_err());
 
         let input = vec![2.75];
-        assert!(pvariance(input).is_err());
+        assert_eq!(round!(pvariance(input).unwrap(), 3), 0.0);
 
         let input = vec![0.0, 0.25, 0.25, 1.25, 1.5, 1.75, 2.75, 3.25];
-        assert_eq!(
-            ((pvariance(input).unwrap() * 1000.0) as f64).round() / 1000.0,
-            1.25
-        );
+        assert_eq!(round!(pvariance(input).unwrap(), 3), 1.25);
 
         let input = vec![27.5, 30.25, 30.25, 34.5, 41.75];
-        assert_eq!(
-            ((pvariance(input).unwrap() * 10000.0) as f64).round() / 10000.0,
-            24.815
-        );
+        assert_eq!(round!(pvariance(input).unwrap(), 4), 24.815);
+
     }
 
     #[test]
@@ -640,18 +634,18 @@ mod tests {
     #[test]
     fn test_median_grouped() {
         let mut converted = into_notnans(&[1.0, 2.0, 2.0, 3.0, 4.0, 4.0, 4.0, 4.0, 4.0, 5.0]);
-        let res = median_grouped(converted.as_mut_slice(), 1.0);
+        let res = median_grouped(converted.as_mut_slice(), 1);
         assert_eq!(*res.unwrap(), 3.7);
 
         let mut converted = into_notnans(&[52.0, 52.0, 53.0, 54.0]);
-        let res = median_grouped(converted.as_mut_slice(), 1.0);
+        let res = median_grouped(converted.as_mut_slice(), 1);
         assert_eq!(*res.unwrap(), 52.5);
 
         let mut converted = into_notnans(&[1.0, 3.0, 3.0, 5.0, 7.0]);
-        let res = median_grouped(converted.as_mut_slice(), 1.0);
+        let res = median_grouped(converted.as_mut_slice(), 1);
         assert_eq!(*res.unwrap(), 3.25);
 
-        let res = median_grouped(converted.as_mut_slice(), 2.0);
+        let res = median_grouped(converted.as_mut_slice(), 2);
         assert_eq!(*res.unwrap(), 3.5);
     }
 
