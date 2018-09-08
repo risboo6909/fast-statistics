@@ -31,6 +31,36 @@ py_module_initializer!(
         )?;
         m.add(
             py,
+            "stdev_f64",
+            py_fn!(py, stdev_f64_py(xs: PyObject)),
+        )?;
+        m.add(
+            py,
+            "stdev_f32",
+            py_fn!(py, stdev_f32_py(xs: PyObject)),
+        )?;
+        m.add(
+            py,
+            "pvariance_f64",
+            py_fn!(py, pvariance_f64_py(xs: PyObject)),
+        )?;
+        m.add(
+            py,
+            "pvariance_f32",
+            py_fn!(py, pvariance_f32_py(xs: PyObject)),
+        )?;
+        m.add(
+            py,
+            "pstdev_f64",
+            py_fn!(py, pstdev_f64_py(xs: PyObject)),
+        )?;
+        m.add(
+            py,
+            "pstdev_f32",
+            py_fn!(py, pstdev_f32_py(xs: PyObject)),
+        )?;
+        m.add(
+            py,
             "harmonic_mean_f64",
             py_fn!(py, harmonic_mean_f64_py(xs: PyObject)),
         )?;
@@ -42,6 +72,9 @@ py_module_initializer!(
 
         m.add(py, "median_f64", py_fn!(py, median_f64_py(xs: PyObject)))?;
         m.add(py, "median_f32", py_fn!(py, median_f32_py(xs: PyObject)))?;
+
+//        m.add(py, "median_grouped_f64", py_fn!(py, median_grouped_f64_py(xs: PyObject, interval: usize)))?;
+//        m.add(py, "median_grouped_f32", py_fn!(py, median_grouped_f32_py(xs: PyObject, interval: usize)))?;
 
         m.add(
             py,
@@ -111,11 +144,20 @@ py_module_initializer!(
 
 gen_wrapper!(variance, (variance_f64_py, [] => f64), (variance_f32_py, [] => f32));
 
+gen_wrapper!(pvariance, (pvariance_f64_py, [] => f64), (pvariance_f32_py, [] => f32));
+
+gen_wrapper!(pstdev, (pstdev_f64_py, [] => f64), (pstdev_f32_py, [] => f32));
+
+gen_wrapper!(stdev, (stdev_f64_py, [] => f64), (stdev_f32_py, [] => f32));
+
 gen_wrapper!(mean, (mean_f64_py, [] => f64), (mean_f32_py, [] => f32));
 
 gen_wrapper!(harmonic_mean, (harmonic_mean_f64_py, [] => f64), (harmonic_mean_f32_py, [] => f32));
 
-gen_wrapper!(mut median, (median_f64_py, [] => f64), (median_f32_py, [] => i64));
+gen_wrapper!(mut median, (median_f64_py, [] => f64), (median_f32_py, [] => f32));
+//
+//gen_wrapper!(ord mut median_grouped, (median_grouped_f64_py, [interval::usize] => f64),
+//                                     (median_grouped_f32_py, [interval::usize] => f32));
 
 gen_wrapper!(mode,
             (mode_str_py, [] => String), (mode_i64_py, [] => i64), (mode_i32_py, [] => i32),
@@ -129,7 +171,7 @@ gen_wrapper!(mut kth_stat, (kth_elem_f64_py, [k::usize] => f64),
                            (kth_elem_i32_py, [k::usize] => i32)
           );
 
-gen_wrapper!(ord mut median_low, (median_low_f32_py, f32), (median_low_f64_py, f64));
-gen_wrapper!(ord mut median_high, (median_high_f32_py, f32), (median_high_f64_py, f64));
+gen_wrapper!(ord mut median_low, (median_low_f32_py, [] => f32), (median_low_f64_py, [] => f64));
+gen_wrapper!(ord mut median_high, (median_high_f32_py, [] => f32), (median_high_f64_py, [] => f64));
 
-gen_wrapper!(ord mode, (mode_f32_py, f32), (mode_f64_py, f64));
+gen_wrapper!(ord mode, (mode_f32_py, [] => f32), (mode_f64_py, [] => f64));
