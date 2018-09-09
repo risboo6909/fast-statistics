@@ -2,6 +2,7 @@
 import sys
 
 from setuptools import setup
+from setuptools_rust import Binding, RustExtension
 
 try:
     from setuptools_rust import RustExtension
@@ -25,14 +26,19 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Development Status :: 1 - Alpha",
         "Intended Audience :: Developers",
-        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
         "Programming Language :: Rust",
         "Operating System :: POSIX",
         "Operating System :: MacOS :: MacOS X",
         "Operating System :: Microsoft :: Windows",
     ],
-    packages=["fast_statistics"],
-    rust_extensions=[RustExtension("fast_statistics.fast_statistics")],
+    packages=["fast_stat"],
+    rust_extensions=[RustExtension("fast_stat.fast_stat", binding=Binding.PyO3)],
     install_requires=install_requires,
     setup_requires=setup_requires,
     include_package_data=True,

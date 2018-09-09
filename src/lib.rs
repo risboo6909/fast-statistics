@@ -13,9 +13,9 @@ use ordered_float::OrderedFloat;
 use cpython::*;
 
 py_module_initializer!(
-    libfast_stat,
-    initlibfast_stat,
-    PyInit_libfast_stat,
+    fast_stat,
+    initfast_stat,
+    PyInit_fast_stat,
     |py, m| {
         m.add(py, "mean_f64", py_fn!(py, mean_f64_py(xs: PyObject)))?;
         m.add(py, "mean_f32", py_fn!(py, mean_f32_py(xs: PyObject)))?;
