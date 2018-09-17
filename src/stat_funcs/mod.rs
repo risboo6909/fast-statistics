@@ -70,7 +70,7 @@ crate fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyErr
 
 crate fn harmonic_mean<T>(xs: Vec<T>) -> Result<T, MyError>
 where
-    T: Num + PartialOrd + Float,
+    T: PartialOrd + Float,
 {
     if xs.len() == 0 {
         return Err(MyError::HarmonicNoDataPoints);
@@ -98,7 +98,7 @@ fn get_median_pair<'a, T: 'a>(r: &'a IntHashMap<usize, T>) -> (&'a T, &'a T) {
 
 crate fn median<T>(xs: &mut [T]) -> Result<T, MyError>
 where
-    T: Copy + PartialOrd + Num + Add + Send + Debug + From<f32>,
+    T: Copy + PartialOrd + Add + Send + Debug + Float,
 {
     let n = xs.len();
 
@@ -106,12 +106,12 @@ where
         return Err(MyError::NoMedianEmptyData);
     }
 
-    let med_idx = (0.5 * n as f64) as usize;
+    let med_idx = n / 2;
 
     if n % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
         let (a, b) = get_median_pair(&r);
-        Ok((*a + *b) / T::from(2.0))
+        Ok((*a + *b) / from_unwrap!(T, 2.0))
     } else {
         kth_stat(xs, med_idx)
     }
@@ -121,10 +121,9 @@ fn median_low_high<T>(xs: &mut [T], f: fn(T, T) -> T) -> Result<T, MyError>
 where
     T: Copy + Ord + Send + Debug,
 {
-    let xs_len = xs.len();
-    let med_idx = (0.5 * xs_len as f64) as usize;
+    let med_idx = xs.len() / 2;
 
-    if xs_len % 2 == 0 {
+    if xs.len() % 2 == 0 {
         let r = kth_stats_recur(xs, &mut [med_idx - 1, med_idx]);
         let (a, b) = get_median_pair(&r);
         Ok(f(*a, *b))
@@ -504,6 +503,7 @@ crate fn kth_stat<T: Copy + PartialOrd + Send + Debug>(
 ) -> Result<T, MyError> {
     Ok(*kth_stats_recur(xs, &mut [k]).get(&k).unwrap())
 }
+
 
 #[cfg(test)]
 mod tests;
