@@ -2,10 +2,10 @@ crate mod errors;
 
 use self::errors::MyError;
 
+use super::utils::into_mut_notnan;
 use superslice::Ext;
 use int_hash::IntHashMap;
 use num::{Float, FromPrimitive, Num};
-use ordered_float::NotNaN;
 use rand::{Rng, SeedableRng, XorShiftRng};
 use rayon::prelude::*;
 use std::cmp::{max, min, Reverse};
@@ -17,7 +17,7 @@ use std::ops::{Add, Sub, Div, Mul};
 
 macro_rules! from_unwrap {
     ($T: ty, $e: expr) => {
-            T::from($e).unwrap()
+        T::from($e).unwrap()
     }
 }
 
@@ -152,8 +152,10 @@ crate fn median_high<T: Copy + Ord + Send + Debug>(ys: &mut [T]) -> Result<T, My
 /// F = number of data points in the median interval
 ///
 /// see https://www.geeksforgeeks.org/python-statistics-median_grouped/ for explanation
-crate fn median_grouped<T>(xs: &mut [NotNaN<T>], interval: usize) -> Result<NotNaN<T>, MyError>
+crate fn median_grouped<T>(xs: &mut [T], interval: usize) -> Result<T, MyError>
     where T: Float + Mul<T, Output = T> + Add<T, Output = T> + Sub<T, Output = T> {
+
+    let xs = into_mut_notnan(xs);
 
     xs.sort();
     let n = xs.len();
@@ -161,12 +163,12 @@ crate fn median_grouped<T>(xs: &mut [NotNaN<T>], interval: usize) -> Result<NotN
     if n == 0 {
         return Err(MyError::NoMedianEmptyData);
     } else if n == 1 {
-        return Ok(xs[0]);
+        return Ok(xs[0].into_inner());
     }
 
     let x = xs[n / 2];
 
-    let interval_converted = from_unwrap!(T, interval as f64);
+    let interval_converted = from_unwrap!(T, interval);
     let one_half = from_unwrap!(T, 0.5);
 
     let lower_limit = x - one_half * interval_converted;
@@ -177,7 +179,10 @@ crate fn median_grouped<T>(xs: &mut [NotNaN<T>], interval: usize) -> Result<NotN
     let cf = from_unwrap!(T, l1);
     let f = from_unwrap!(T, l2 - l1 + 1);
 
-    Ok(lower_limit + interval_converted * ((one_half * from_unwrap!(T, n) - cf) / f))
+    let notnan_value = lower_limit + interval_converted *
+                       ((one_half * from_unwrap!(T, n) - cf) / f);
+
+    Ok(notnan_value.into_inner())
 }
 
 /// Naive implementations of variance/mean computation suffer from a lack of precision

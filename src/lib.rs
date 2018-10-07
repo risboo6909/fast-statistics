@@ -73,8 +73,10 @@ py_module_initializer!(
         m.add(py, "median_f64", py_fn!(py, median_f64_py(xs: PyObject)))?;
         m.add(py, "median_f32", py_fn!(py, median_f32_py(xs: PyObject)))?;
 
-//        m.add(py, "median_grouped_f64", py_fn!(py, median_grouped_f64_py(xs: PyObject, interval: usize)))?;
-//        m.add(py, "median_grouped_f32", py_fn!(py, median_grouped_f32_py(xs: PyObject, interval: usize)))?;
+        m.add(py, "median_grouped_f64", py_fn!(py, median_grouped_f64_py(xs: PyObject,
+                                                interval: usize)))?;
+        m.add(py, "median_grouped_f32", py_fn!(py, median_grouped_f32_py(xs: PyObject,
+                                                interval: usize)))?;
 
         m.add(
             py,
@@ -155,9 +157,6 @@ gen_wrapper!(mean, (mean_f64_py, [] => f64), (mean_f32_py, [] => f32));
 gen_wrapper!(harmonic_mean, (harmonic_mean_f64_py, [] => f64), (harmonic_mean_f32_py, [] => f32));
 
 gen_wrapper!(mut median, (median_f64_py, [] => f64), (median_f32_py, [] => f32));
-//
-//gen_wrapper!(ord mut median_grouped, (median_grouped_f64_py, [interval::usize] => f64),
-//                                     (median_grouped_f32_py, [interval::usize] => f32));
 
 gen_wrapper!(mode,
             (mode_str_py, [] => String), (mode_i64_py, [] => i64), (mode_i32_py, [] => i32),
@@ -169,7 +168,11 @@ gen_wrapper!(mut kth_stat, (kth_elem_f64_py, [k::usize] => f64),
                            (kth_elem_u32_py, [k::usize] => u32),
                            (kth_elem_i64_py, [k::usize] => i64),
                            (kth_elem_i32_py, [k::usize] => i32)
-          );
+            );
+
+gen_wrapper!(mut median_grouped, (median_grouped_f64_py, [interval::usize] => f64),
+                                 (median_grouped_f32_py, [interval::usize] => f32)
+            );
 
 gen_wrapper!(ord mut median_low, (median_low_f32_py, [] => f32), (median_low_f64_py, [] => f64));
 gen_wrapper!(ord mut median_high, (median_high_f32_py, [] => f32), (median_high_f64_py, [] => f64));

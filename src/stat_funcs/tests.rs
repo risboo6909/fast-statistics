@@ -2,7 +2,6 @@ use quickcheck::{quickcheck, TestResult};
 use crate::stat_funcs::{
     kth_stats_recur, mean, median_grouped, partition, pvariance, variance,
 };
-use ordered_float::*;
 
 // round number up to $digits digits, convenient for some tests below
 macro_rules! round {
@@ -23,10 +22,6 @@ fn is_partitioned<T: Copy + PartialOrd>(xs: &[T], pivot_elem: T) -> bool {
         }
         None => panic!("Error, no pivot element has been found!"),
     }
-}
-
-fn into_notnans(xs: &[f64]) -> Vec<NotNaN<f64>> {
-    xs.iter().map(|x| NotNaN::new(*x).unwrap()).collect()
 }
 
 fn ensure_partitioned(mut xs: Vec<u32>, pivot_idx: usize) -> TestResult {
@@ -137,18 +132,18 @@ fn test_mean() {
 
 #[test]
 fn test_median_grouped() {
-    let mut converted = into_notnans(&[1.0, 2.0, 2.0, 3.0, 4.0, 4.0, 4.0, 4.0, 4.0, 5.0]);
-    let res = median_grouped(converted.as_mut_slice(), 1);
-    assert_eq!(*res.unwrap(), 3.7);
+    let mut xs = [1.0, 2.0, 2.0, 3.0, 4.0, 4.0, 4.0, 4.0, 4.0, 5.0];
+    let res = median_grouped(&mut xs, 1);
+    assert_eq!(res.unwrap(), 3.7);
 
-    let mut converted = into_notnans(&[52.0, 52.0, 53.0, 54.0]);
-    let res = median_grouped(converted.as_mut_slice(), 1);
-    assert_eq!(*res.unwrap(), 52.5);
+    let mut xs= [52.0, 52.0, 53.0, 54.0];
+    let res = median_grouped(&mut xs, 1);
+    assert_eq!(res.unwrap(), 52.5);
 
-    let mut converted = into_notnans(&[1.0, 3.0, 3.0, 5.0, 7.0]);
-    let res = median_grouped(converted.as_mut_slice(), 1);
-    assert_eq!(*res.unwrap(), 3.25);
+    let mut xs = [1.0, 3.0, 3.0, 5.0, 7.0];
+    let res = median_grouped(&mut xs, 1);
+    assert_eq!(res.unwrap(), 3.25);
 
-    let res = median_grouped(converted.as_mut_slice(), 2);
-    assert_eq!(*res.unwrap(), 3.5);
+    let res = median_grouped(&mut xs, 2);
+    assert_eq!(res.unwrap(), 3.5);
 }
