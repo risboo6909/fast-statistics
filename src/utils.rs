@@ -1,11 +1,10 @@
-use core::mem::transmute;
 use num::Float;
 
 use cpython::{FromPyObject, PyObject, PyResult, Python};
 use ordered_float::{NotNaN, OrderedFloat};
 
 #[inline]
-crate fn pylist_to_vec<T>(py: Python<'_>, xs: PyObject) -> PyResult<Vec<T>>
+crate fn pylist_to_vec<T>(py: Python<'_>, xs: &PyObject) -> PyResult<Vec<T>>
 where
     for<'a> T: FromPyObject<'a>,
 {
@@ -17,8 +16,7 @@ crate fn into_mut_notnan<T>(xs: &mut [T]) -> &mut [NotNaN<T>]
 where
     T: Float,
 {
-    // very fast but unsafe conversion from slice of floats into slice of NotNaNs
-    unsafe { transmute::<&mut [T], &mut [NotNaN<T>]>(xs) }
+    unsafe { &mut *(xs as *mut [T] as *mut [ordered_float::NotNaN<T>]) }
 }
 
 #[inline]
@@ -26,8 +24,8 @@ crate fn extract_ordered_floats<T>(py: Python<'_>, xs: &PyObject) -> PyResult<Ve
 where
     for<'a> T: Float + FromPyObject<'a>,
 {
-    // very fast but unsafe conversion from slice of floats into slice of OrderedFloats
-    let ys = unsafe { transmute::<&[T], &[OrderedFloat<T>]>(&Vec::extract(py, &xs)?) };
+    let tmp = &Vec::extract(py, &xs)?[..];
+    let ys = unsafe { &*(tmp as *const [T] as *const [ordered_float::OrderedFloat<T>]) };
 
     Ok(ys.to_vec())
 }

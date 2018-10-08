@@ -28,17 +28,17 @@ const KTH_SORT_THRESHOLD: f64 = 0.1 / 100.0;
 #[inline]
 fn init_rand() -> impl FnMut(usize, usize) -> usize {
     let mut rng: XorShiftRng = XorShiftRng::from_seed(rand::thread_rng().gen());
-    return move |from: usize, to: usize| -> usize {
+    move |from: usize, to: usize| -> usize {
         if from == to {
             0
         } else {
             from + (rng.next_u64() % (to as u64 - from as u64)) as usize
         }
-    };
+    }
 }
 
 crate fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError> {
-    if xs.len() == 0 {
+    if xs.is_empty() {
         return Err(MyError::NoModeEmptyData);
     }
 
@@ -62,7 +62,7 @@ crate fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyErr
         // one unique mode found
         1 => Ok(mode),
         // many modes with equal frequencies found
-        _ => Err(MyError::NoUniqueMode { modes: modes }),
+        _ => Err(MyError::NoUniqueMode { modes }),
     }
 }
 
@@ -70,7 +70,7 @@ crate fn harmonic_mean<T>(xs: Vec<T>) -> Result<T, MyError>
 where
     T: PartialOrd + Float,
 {
-    if xs.len() == 0 {
+    if xs.is_empty() {
         return Err(MyError::HarmonicNoDataPoints);
     }
 
@@ -202,7 +202,7 @@ where
     let mut old_m = T::zero();
     let mut old_s = T::zero();
 
-    return move |x: T| {
+    move |x: T| {
         let new_m;
         let new_s;
 
@@ -225,7 +225,7 @@ where
         m_n += 1;
 
         (new_m, new_s)
-    };
+    }
 }
 
 /// Return the sample variance of input data
@@ -252,7 +252,7 @@ crate fn pvariance<T>(xs: Vec<T>) -> Result<T, MyError>
 where
     T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
-    if xs.len() < 1 {
+    if xs.is_empty() {
         Err(MyError::NoEnoughDataForPopulationVariance)
     } else {
         let mut push_one = running_stat();
@@ -288,7 +288,7 @@ crate fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
 where
     T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
-    if xs.len() < 1 {
+    if xs.is_empty() {
         Err(MyError::NoEnoughDataForMean)
     } else {
         let mut push_one = running_stat();
@@ -333,13 +333,11 @@ fn partition<T: Copy + PartialOrd>(
         if xs[i] < pivot_elem {
             i += 1;
             j = usize::max(i, j);
+        } else if xs[j] >= pivot_elem {
+            j += 1;
         } else {
-            if xs[j] >= pivot_elem {
-                j += 1;
-            } else {
-                xs.swap(i, j);
-                i += 1;
-            }
+            xs.swap(i, j);
+            i += 1;
         }
     }
 
@@ -358,7 +356,7 @@ fn kth_stat_helper<T: Copy + PartialOrd + Send + Debug>(
 ) -> IntHashMap<usize, T> {
     let empty_hash = IntHashMap::default();
 
-    if left >= right || ks.len() == 0 {
+    if left >= right || ks.is_empty() {
         return empty_hash;
     }
 
@@ -391,10 +389,8 @@ fn kth_stat_helper<T: Copy + PartialOrd + Send + Debug>(
     let need_sort =
         if left_len >= right_len && (right_len as f64 / left_len as f64 <= KTH_SORT_THRESHOLD) {
             true
-        } else if left_len as f64 / right_len as f64 <= KTH_SORT_THRESHOLD {
-            true
         } else {
-            false
+            left_len as f64 / right_len as f64 <= KTH_SORT_THRESHOLD
         };
 
     let ks_len = ks.len();
@@ -479,8 +475,9 @@ crate fn kth_stat<T: Copy + PartialOrd + Send + Debug>(
     xs: &mut [T],
     k: usize,
 ) -> Result<T, MyError> {
-    Ok(*kth_stats_recur(xs, &mut [k]).get(&k).unwrap())
+    Ok(kth_stats_recur(xs, &mut [k])[&k])
 }
+
 
 #[cfg(test)]
 mod tests;
