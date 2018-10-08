@@ -7,142 +7,126 @@ mod gen_macro;
 mod stat_funcs;
 mod utils;
 
+use cpython::*;
 use crate::stat_funcs::errors::to_python_result;
 use crate::utils::{extract_ordered_floats, pylist_to_vec};
 use ordered_float::OrderedFloat;
-use cpython::*;
 
-py_module_initializer!(
-    fast_stat,
-    initfast_stat,
-    PyInit_fast_stat,
-    |py, m| {
-        m.add(py, "mean_f64", py_fn!(py, mean_f64_py(xs: PyObject)))?;
-        m.add(py, "mean_f32", py_fn!(py, mean_f32_py(xs: PyObject)))?;
-        m.add(
-            py,
-            "variance_f64",
-            py_fn!(py, variance_f64_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "variance_f32",
-            py_fn!(py, variance_f32_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "stdev_f64",
-            py_fn!(py, stdev_f64_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "stdev_f32",
-            py_fn!(py, stdev_f32_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "pvariance_f64",
-            py_fn!(py, pvariance_f64_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "pvariance_f32",
-            py_fn!(py, pvariance_f32_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "pstdev_f64",
-            py_fn!(py, pstdev_f64_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "pstdev_f32",
-            py_fn!(py, pstdev_f32_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "harmonic_mean_f64",
-            py_fn!(py, harmonic_mean_f64_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "harmonic_mean_f32",
-            py_fn!(py, harmonic_mean_f32_py(xs: PyObject)),
-        )?;
+py_module_initializer!(fast_stat, initfast_stat, PyInit_fast_stat, |py, m| {
+    m.add(py, "mean_f64", py_fn!(py, mean_f64_py(xs: PyObject)))?;
+    m.add(py, "mean_f32", py_fn!(py, mean_f32_py(xs: PyObject)))?;
+    m.add(
+        py,
+        "variance_f64",
+        py_fn!(py, variance_f64_py(xs: PyObject)),
+    )?;
+    m.add(
+        py,
+        "variance_f32",
+        py_fn!(py, variance_f32_py(xs: PyObject)),
+    )?;
+    m.add(py, "stdev_f64", py_fn!(py, stdev_f64_py(xs: PyObject)))?;
+    m.add(py, "stdev_f32", py_fn!(py, stdev_f32_py(xs: PyObject)))?;
+    m.add(
+        py,
+        "pvariance_f64",
+        py_fn!(py, pvariance_f64_py(xs: PyObject)),
+    )?;
+    m.add(
+        py,
+        "pvariance_f32",
+        py_fn!(py, pvariance_f32_py(xs: PyObject)),
+    )?;
+    m.add(py, "pstdev_f64", py_fn!(py, pstdev_f64_py(xs: PyObject)))?;
+    m.add(py, "pstdev_f32", py_fn!(py, pstdev_f32_py(xs: PyObject)))?;
+    m.add(
+        py,
+        "harmonic_mean_f64",
+        py_fn!(py, harmonic_mean_f64_py(xs: PyObject)),
+    )?;
+    m.add(
+        py,
+        "harmonic_mean_f32",
+        py_fn!(py, harmonic_mean_f32_py(xs: PyObject)),
+    )?;
 
-        m.add(py, "median_f64", py_fn!(py, median_f64_py(xs: PyObject)))?;
-        m.add(py, "median_f32", py_fn!(py, median_f32_py(xs: PyObject)))?;
+    m.add(py, "median_f64", py_fn!(py, median_f64_py(xs: PyObject)))?;
+    m.add(py, "median_f32", py_fn!(py, median_f32_py(xs: PyObject)))?;
 
-        m.add(py, "median_grouped_f64", py_fn!(py, median_grouped_f64_py(xs: PyObject,
-                                                interval: usize)))?;
-        m.add(py, "median_grouped_f32", py_fn!(py, median_grouped_f32_py(xs: PyObject,
-                                                interval: usize)))?;
+    m.add(
+        py,
+        "median_grouped_f64",
+        py_fn!(py, median_grouped_f64_py(xs: PyObject, interval: usize)),
+    )?;
+    m.add(
+        py,
+        "median_grouped_f32",
+        py_fn!(py, median_grouped_f32_py(xs: PyObject, interval: usize)),
+    )?;
 
-        m.add(
-            py,
-            "median_low_f64",
-            py_fn!(py, median_low_f64_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "median_low_f32",
-            py_fn!(py, median_low_f32_py(xs: PyObject)),
-        )?;
+    m.add(
+        py,
+        "median_low_f64",
+        py_fn!(py, median_low_f64_py(xs: PyObject)),
+    )?;
+    m.add(
+        py,
+        "median_low_f32",
+        py_fn!(py, median_low_f32_py(xs: PyObject)),
+    )?;
 
-        m.add(
-            py,
-            "median_high_f64",
-            py_fn!(py, median_high_f64_py(xs: PyObject)),
-        )?;
-        m.add(
-            py,
-            "median_high_f32",
-            py_fn!(py, median_high_f32_py(xs: PyObject)),
-        )?;
+    m.add(
+        py,
+        "median_high_f64",
+        py_fn!(py, median_high_f64_py(xs: PyObject)),
+    )?;
+    m.add(
+        py,
+        "median_high_f32",
+        py_fn!(py, median_high_f32_py(xs: PyObject)),
+    )?;
 
-        m.add(py, "mode_f64", py_fn!(py, mode_f64_py(xs: PyObject)))?;
-        m.add(py, "mode_f32", py_fn!(py, mode_f32_py(xs: PyObject)))?;
-        m.add(py, "mode_i64", py_fn!(py, mode_i64_py(xs: PyObject)))?;
-        m.add(py, "mode_i32", py_fn!(py, mode_i32_py(xs: PyObject)))?;
-        m.add(py, "mode_u64", py_fn!(py, mode_u64_py(xs: PyObject)))?;
-        m.add(py, "mode_u32", py_fn!(py, mode_u32_py(xs: PyObject)))?;
-        m.add(py, "mode_str", py_fn!(py, mode_str_py(xs: PyObject)))?;
+    m.add(py, "mode_f64", py_fn!(py, mode_f64_py(xs: PyObject)))?;
+    m.add(py, "mode_f32", py_fn!(py, mode_f32_py(xs: PyObject)))?;
+    m.add(py, "mode_i64", py_fn!(py, mode_i64_py(xs: PyObject)))?;
+    m.add(py, "mode_i32", py_fn!(py, mode_i32_py(xs: PyObject)))?;
+    m.add(py, "mode_u64", py_fn!(py, mode_u64_py(xs: PyObject)))?;
+    m.add(py, "mode_u32", py_fn!(py, mode_u32_py(xs: PyObject)))?;
+    m.add(py, "mode_str", py_fn!(py, mode_str_py(xs: PyObject)))?;
 
-        m.add(
-            py,
-            "kth_elem_f64",
-            py_fn!(py, kth_elem_f64_py(xs: PyObject, k: usize)),
-        )?;
-        m.add(
-            py,
-            "kth_elem_f32",
-            py_fn!(py, kth_elem_f32_py(xs: PyObject, k: usize)),
-        )?;
-        m.add(
-            py,
-            "kth_elem_i64",
-            py_fn!(py, kth_elem_i64_py(xs: PyObject, k: usize)),
-        )?;
-        m.add(
-            py,
-            "kth_elem_i32",
-            py_fn!(py, kth_elem_i32_py(xs: PyObject, k: usize)),
-        )?;
-        m.add(
-            py,
-            "kth_elem_u64",
-            py_fn!(py, kth_elem_u64_py(xs: PyObject, k: usize)),
-        )?;
-        m.add(
-            py,
-            "kth_elem_u32",
-            py_fn!(py, kth_elem_u32_py(xs: PyObject, k: usize)),
-        )?;
+    m.add(
+        py,
+        "kth_elem_f64",
+        py_fn!(py, kth_elem_f64_py(xs: PyObject, k: usize)),
+    )?;
+    m.add(
+        py,
+        "kth_elem_f32",
+        py_fn!(py, kth_elem_f32_py(xs: PyObject, k: usize)),
+    )?;
+    m.add(
+        py,
+        "kth_elem_i64",
+        py_fn!(py, kth_elem_i64_py(xs: PyObject, k: usize)),
+    )?;
+    m.add(
+        py,
+        "kth_elem_i32",
+        py_fn!(py, kth_elem_i32_py(xs: PyObject, k: usize)),
+    )?;
+    m.add(
+        py,
+        "kth_elem_u64",
+        py_fn!(py, kth_elem_u64_py(xs: PyObject, k: usize)),
+    )?;
+    m.add(
+        py,
+        "kth_elem_u32",
+        py_fn!(py, kth_elem_u32_py(xs: PyObject, k: usize)),
+    )?;
 
-        Ok(())
-    }
-);
-
+    Ok(())
+});
 
 gen_wrapper!(variance, (variance_f64_py, [] => f64), (variance_f32_py, [] => f32));
 

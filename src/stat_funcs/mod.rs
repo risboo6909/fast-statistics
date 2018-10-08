@@ -3,7 +3,6 @@ crate mod errors;
 use self::errors::MyError;
 
 use super::utils::into_mut_notnan;
-use superslice::Ext;
 use int_hash::IntHashMap;
 use num::{Float, FromPrimitive, Num};
 use rand::{Rng, SeedableRng, XorShiftRng};
@@ -12,15 +11,14 @@ use std::cmp::{max, min, Reverse};
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
-use std::ops::{Add, Sub, Div, Mul};
-
+use std::ops::{Add, Div, Mul, Sub};
+use superslice::Ext;
 
 macro_rules! from_unwrap {
     ($T: ty, $e: expr) => {
         T::from($e).unwrap()
-    }
+    };
 }
-
 
 // TODO: Make it configurable as function argument?
 // this constant was empirically chosen to make kth_stat algorithm work well on various input
@@ -153,8 +151,9 @@ crate fn median_high<T: Copy + Ord + Send + Debug>(ys: &mut [T]) -> Result<T, My
 ///
 /// see https://www.geeksforgeeks.org/python-statistics-median_grouped/ for explanation
 crate fn median_grouped<T>(xs: &mut [T], interval: usize) -> Result<T, MyError>
-    where T: Float + Mul<T, Output = T> + Add<T, Output = T> + Sub<T, Output = T> {
-
+where
+    T: Float + Mul<T, Output = T> + Add<T, Output = T> + Sub<T, Output = T>,
+{
     let xs = into_mut_notnan(xs);
 
     xs.sort();
@@ -179,8 +178,8 @@ crate fn median_grouped<T>(xs: &mut [T], interval: usize) -> Result<T, MyError>
     let cf = from_unwrap!(T, l1);
     let f = from_unwrap!(T, l2 - l1 + 1);
 
-    let notnan_value = lower_limit + interval_converted *
-                       ((one_half * from_unwrap!(T, n) - cf) / f);
+    let notnan_value =
+        lower_limit + interval_converted * ((one_half * from_unwrap!(T, n) - cf) / f);
 
     Ok(notnan_value.into_inner())
 }
@@ -196,12 +195,7 @@ crate fn median_grouped<T>(xs: &mut [T], interval: usize) -> Result<T, MyError>
 #[allow(unused_mut)]
 fn running_stat<T>() -> impl FnMut(T) -> (T, T)
 where
-    T: Num
-        + Copy
-        + FromPrimitive
-        + Mul<T, Output = T>
-        + Div<T, Output = T>
-        + Add<T, Output = T>,
+    T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
     let mut m_n = 1;
 
@@ -237,11 +231,7 @@ where
 /// Return the sample variance of input data
 crate fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
 where
-    T: Float
-        + FromPrimitive
-        + Mul<T, Output = T>
-        + Div<T, Output = T>
-        + Add<T, Output = T>,
+    T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
     if xs.len() < 2 {
         Err(MyError::NoEnoughDataForVariance)
@@ -260,11 +250,7 @@ where
 /// Return the population variance of input data
 crate fn pvariance<T>(xs: Vec<T>) -> Result<T, MyError>
 where
-    T: Float
-        + FromPrimitive
-        + Mul<T, Output = T>
-        + Div<T, Output = T>
-        + Add<T, Output = T>,
+    T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
     if xs.len() < 1 {
         Err(MyError::NoEnoughDataForPopulationVariance)
@@ -282,11 +268,7 @@ where
 
 crate fn stdev<T>(xs: Vec<T>) -> Result<T, MyError>
 where
-    T: Float
-        + FromPrimitive
-        + Mul<T, Output = T>
-        + Div<T, Output = T>
-        + Add<T, Output = T>,
+    T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
     let res = variance(xs)?;
     // variance can't be a negative value no additional checks needed
@@ -295,11 +277,7 @@ where
 
 crate fn pstdev<T>(xs: Vec<T>) -> Result<T, MyError>
 where
-    T: Float
-        + FromPrimitive
-        + Mul<T, Output = T>
-        + Div<T, Output = T>
-        + Add<T, Output = T>,
+    T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
     let res = pvariance(xs)?;
     // pvariance can't be a negative value no additional checks needed
@@ -308,12 +286,7 @@ where
 
 crate fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
 where
-    T: Num
-        + Copy
-        + FromPrimitive
-        + Mul<T, Output = T>
-        + Div<T, Output = T>
-        + Add<T, Output = T>,
+    T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
     if xs.len() < 1 {
         Err(MyError::NoEnoughDataForMean)
@@ -508,7 +481,6 @@ crate fn kth_stat<T: Copy + PartialOrd + Send + Debug>(
 ) -> Result<T, MyError> {
     Ok(*kth_stats_recur(xs, &mut [k]).get(&k).unwrap())
 }
-
 
 #[cfg(test)]
 mod tests;

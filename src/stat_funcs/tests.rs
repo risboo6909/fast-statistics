@@ -1,7 +1,5 @@
+use crate::stat_funcs::{kth_stats_recur, mean, median_grouped, partition, pvariance, variance};
 use quickcheck::{quickcheck, TestResult};
-use crate::stat_funcs::{
-    kth_stats_recur, mean, median_grouped, partition, pvariance, variance,
-};
 
 // round number up to $digits digits, convenient for some tests below
 macro_rules! round {
@@ -112,7 +110,6 @@ fn test_pvariance() {
 
     let input = vec![27.5, 30.25, 30.25, 34.5, 41.75];
     assert_eq!(round!(pvariance(input).unwrap(), 4), 24.815);
-
 }
 
 #[test]
@@ -136,7 +133,7 @@ fn test_median_grouped() {
     let res = median_grouped(&mut xs, 1);
     assert_eq!(res.unwrap(), 3.7);
 
-    let mut xs= [52.0, 52.0, 53.0, 54.0];
+    let mut xs = [52.0, 52.0, 53.0, 54.0];
     let res = median_grouped(&mut xs, 1);
     assert_eq!(res.unwrap(), 52.5);
 
