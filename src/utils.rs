@@ -12,7 +12,7 @@ where
 }
 
 #[inline]
-crate fn into_mut_notnan<T>(xs: &mut [T]) -> &mut [NotNaN<T>]
+crate fn into_mut_notnans<T>(xs: &mut [T]) -> &mut [NotNaN<T>]
 where
     T: Float,
 {
@@ -33,7 +33,7 @@ where
 #[test]
 fn test_extract_notnan() {
     let mut xs = vec![1.0, 2.5, 3.7];
-    let ys = into_mut_notnan(&mut xs);
+    let ys = into_mut_notnans(&mut xs);
 
     assert_eq!(
         ys,

@@ -38,7 +38,7 @@ macro_rules! gen_wrapper {
             crate fn $func_name(py: Python<'_>, xs: PyObject, $($arg: $arg_type)*) ->
                                                                         PyResult<$ret_type> {
                 let ys = pylist_to_vec(py, &xs)?;
-                to_python_result(py, stat_funcs::$rust_func_name(ys, $($arg)*))
+                to_python_result(py, stat_funcs::$rust_func_name(&ys, $($arg)*))
             }
         )+
 
@@ -64,7 +64,7 @@ macro_rules! gen_wrapper {
             crate fn $func_name(py: Python<'_>, xs: PyObject, $($arg: $arg_type)*) ->
                                                                     PyResult<$ret_type> {
                 let ys = extract_ordered_floats(py, &xs)?;
-                let res = stat_funcs::$rust_func_name::<OrderedFloat<$ret_type>>(ys, $($arg)*);
+                let res = stat_funcs::$rust_func_name::<OrderedFloat<$ret_type>>(&ys, $($arg)*);
                 to_python_result(py, res.map(|x| x.into()))
             }
         )+

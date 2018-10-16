@@ -2,7 +2,7 @@ crate mod errors;
 
 use self::errors::MyError;
 
-use super::utils::into_mut_notnan;
+use super::utils::into_mut_notnans;
 use int_hash::IntHashMap;
 use num::{Float, FromPrimitive, Num};
 use rand::{Rng, SeedableRng, XorShiftRng};
@@ -37,7 +37,7 @@ fn init_rand() -> impl FnMut(usize, usize) -> usize {
     }
 }
 
-crate fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyError> {
+crate fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: &[T]) -> Result<T, MyError> {
     if xs.is_empty() {
         return Err(MyError::NoModeEmptyData);
     }
@@ -49,24 +49,24 @@ crate fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: Vec<T>) -> Result<T, MyErr
     });
 
     // sort modes by their frequencies
-    let mut tmp = pairs.into_iter().collect::<Vec<(T, u64)>>();
+    let mut tmp = pairs.into_iter().collect::<Vec<(&T, u64)>>();
     tmp.sort_by_key(|x| Reverse(x.1));
 
     // first element must be mode element
-    let (mode, mode_val) = tmp[0].clone();
+    let (mode, mode_val) = tmp[0];
 
     // count number of elements with the same frequency as the mode element
     let modes = tmp.into_iter().take_while(|x| x.1 == mode_val).count();
 
     match modes {
         // one unique mode found
-        1 => Ok(mode),
+        1 => Ok(mode.clone()),
         // many modes with equal frequencies found
         _ => Err(MyError::NoUniqueMode { modes }),
     }
 }
 
-crate fn harmonic_mean<T>(xs: Vec<T>) -> Result<T, MyError>
+crate fn harmonic_mean<T>(xs: &[T]) -> Result<T, MyError>
 where
     T: PartialOrd + Float,
 {
@@ -75,7 +75,7 @@ where
     }
 
     let result = xs.into_iter().try_fold((T::zero(), T::zero()), |acc, e| {
-        if e >= T::zero() {
+        if e >= &T::zero() {
             Some((acc.0 + e.recip(), acc.1 + T::one()))
         } else {
             None
@@ -154,7 +154,7 @@ crate fn median_grouped<T>(xs: &mut [T], interval: usize) -> Result<T, MyError>
 where
     T: Float + Mul<T, Output = T> + Add<T, Output = T> + Sub<T, Output = T>,
 {
-    let xs = into_mut_notnan(xs);
+    let xs = into_mut_notnans(xs);
 
     xs.sort();
     let n = xs.len();
@@ -229,7 +229,7 @@ where
 }
 
 /// Return the sample variance of input data
-crate fn variance<T>(xs: Vec<T>) -> Result<T, MyError>
+crate fn variance<T>(xs: &[T]) -> Result<T, MyError>
 where
     T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
@@ -239,7 +239,7 @@ where
         let mut push_one = running_stat();
         let mut res = (T::zero(), T::zero());
 
-        for x in xs.iter() {
+        for x in xs {
             res = push_one(*x);
         }
 
@@ -248,7 +248,7 @@ where
 }
 
 /// Return the population variance of input data
-crate fn pvariance<T>(xs: Vec<T>) -> Result<T, MyError>
+crate fn pvariance<T>(xs: &[T]) -> Result<T, MyError>
 where
     T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
@@ -266,7 +266,7 @@ where
     }
 }
 
-crate fn stdev<T>(xs: Vec<T>) -> Result<T, MyError>
+crate fn stdev<T>(xs: &[T]) -> Result<T, MyError>
 where
     T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
@@ -275,7 +275,7 @@ where
     Ok(res.sqrt())
 }
 
-crate fn pstdev<T>(xs: Vec<T>) -> Result<T, MyError>
+crate fn pstdev<T>(xs: &[T]) -> Result<T, MyError>
 where
     T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
@@ -284,7 +284,7 @@ where
     Ok(res.sqrt())
 }
 
-crate fn mean<T>(xs: Vec<T>) -> Result<T, MyError>
+crate fn mean<T>(xs: &[T]) -> Result<T, MyError>
 where
     T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
