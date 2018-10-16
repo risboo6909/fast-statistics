@@ -85,46 +85,46 @@ fn test_kth() {
 #[test]
 fn test_variance() {
     let input: Vec<f64> = vec![];
-    assert!(variance(input).is_err());
+    assert!(variance(&input).is_err());
 
     let input = vec![2.75];
-    assert!(variance(input).is_err());
+    assert!(variance(&input).is_err());
 
     let input = vec![2.75, 1.75, 1.25, 0.25, 0.5, 1.25, 3.5];
-    assert_eq!(round!(variance(input).unwrap(), 4), 1.3720);
+    assert_eq!(round!(variance(&input).unwrap(), 4), 1.3720);
 
     let input = vec![27.5, 30.25, 30.25, 34.5, 41.75];
-    assert_eq!(round!(variance(input).unwrap(), 4), 31.0188);
+    assert_eq!(round!(variance(&input).unwrap(), 4), 31.0188);
 }
 
 #[test]
 fn test_pvariance() {
     let input: Vec<f64> = vec![];
-    assert!(pvariance(input).is_err());
+    assert!(pvariance(&input).is_err());
 
     let input = vec![2.75];
-    assert_eq!(round!(pvariance(input).unwrap(), 3), 0.0);
+    assert_eq!(round!(pvariance(&input).unwrap(), 3), 0.0);
 
     let input = vec![0.0, 0.25, 0.25, 1.25, 1.5, 1.75, 2.75, 3.25];
-    assert_eq!(round!(pvariance(input).unwrap(), 3), 1.25);
+    assert_eq!(round!(pvariance(&input).unwrap(), 3), 1.25);
 
     let input = vec![27.5, 30.25, 30.25, 34.5, 41.75];
-    assert_eq!(round!(pvariance(input).unwrap(), 4), 24.815);
+    assert_eq!(round!(pvariance(&input).unwrap(), 4), 24.815);
 }
 
 #[test]
 fn test_mean() {
     let input: Vec<f64> = vec![];
-    assert!(mean(input).is_err());
+    assert!(mean(&input).is_err());
 
     let input = vec![2.0];
-    assert_eq!(mean(input).unwrap(), 2.0);
+    assert_eq!(mean(&input).unwrap(), 2.0);
 
     let input = vec![2.0, 3.0];
-    assert_eq!(mean(input).unwrap(), 2.5);
+    assert_eq!(mean(&input).unwrap(), 2.5);
 
     let input = vec![2.0, -2.0, 3.0, -3.0, 4.0, -4.0];
-    assert_eq!((mean(input).unwrap() as f64).round(), 0.0);
+    assert_eq!((mean(&input).unwrap() as f64).round(), 0.0);
 }
 
 #[test]
