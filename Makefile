@@ -7,5 +7,8 @@ clean:
 test:
 	cargo test
 
-deploy:
-	docker build .
+docker:
+	docker build -t fast_stat .
+
+docker_run: docker
+	docker run -it fast_stat
