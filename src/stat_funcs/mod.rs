@@ -23,7 +23,7 @@ macro_rules! from_unwrap {
 // TODO: Make it configurable as function argument?
 // this constant was empirically chosen to make kth_stat algorithm work well on various input
 // data samples
-const KTH_SORT_THRESHOLD: f64 = 0.1 / 100.0;
+const KTH_SORT_THRESHOLD: usize = 1000;
 
 #[inline]
 fn init_rand() -> impl FnMut(usize, usize) -> usize {
@@ -387,10 +387,12 @@ fn kth_stat_helper<T: Copy + PartialOrd + Send + Debug>(
 
     // compare two halves relative size
     let need_sort =
-        if left_len >= right_len && (right_len as f64 / left_len as f64 <= KTH_SORT_THRESHOLD) {
+        // right_len / left_len <= THRESHOLD <=> THRESHOLD * right_len <= left_len
+        if left_len >= right_len && (KTH_SORT_THRESHOLD * right_len <= left_len) {
             true
         } else {
-            left_len as f64 / right_len as f64 <= KTH_SORT_THRESHOLD
+            // left_len / right_len <= THRESHOLD <=> THRESHOLD * left_len <= right_len
+            KTH_SORT_THRESHOLD * left_len <= right_len
         };
 
     let ks_len = ks.len();
