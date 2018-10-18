@@ -67,13 +67,22 @@ echo "statistics.median" `python3 -m timeit -s "$setup" "statistics.median(xs)"`
 echo "fast_stat.median_high" `python3 -m timeit -s "$setup" "fast_stat.median_high(xs)"`
 echo "statistics.median_high" `python3 -m timeit -s "$setup" "statistics.median_high(xs)"`
 
+setup="
+$imports
+xs = [random.randint(0, 3) for x in range($dataset_len)]
+"
+echo
+echo "fast_stat.median_grouped, interval 2" `python3 -m timeit -s "$setup" "fast_stat.median_grouped(xs, 2)"`
+echo "statistics.median_grouped, interval 2" `python3 -m timeit -s "$setup" "statistics.median_grouped(xs, 2)"`
+echo "fast_stat.median_grouped, interval 20" `python3 -m timeit -s "$setup" "fast_stat.median_grouped(xs, 20)"`
+echo "statistics.median_grouped, interval 20" `python3 -m timeit -s "$setup" "statistics.median_grouped(xs, 20)"`
+
 printf "\n\nHarmonic mean computation on random data\n"
 
 setup="
 $imports
 xs = [random.uniform(0, 1.0) for x in range($dataset_len)]
 "
-echo
 echo
 echo "fast_stat.harmonic_mean" `python3 -m timeit -s "$setup" "fast_stat.harmonic_mean(xs)"`
 echo "statistics.harmonic_mean" `python3 -m timeit -s "$setup" "statistics.harmonic_mean(xs)"`
