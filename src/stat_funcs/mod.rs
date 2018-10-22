@@ -158,7 +158,7 @@ crate fn median_high<T: Copy + Ord + Send + Debug>(ys: &mut [T]) -> Result<T, My
 /// see https://www.geeksforgeeks.org/python-statistics-median_grouped/ for explanation
 crate fn median_grouped<T>(xs: &mut [T], interval: usize) -> Result<T, MyError>
 where
-    T: Float + Mul<T, Output = T> + Add<T, Output = T> + Sub<T, Output = T>,
+    T: Float + Debug + Mul<T, Output = T> + Add<T, Output = T> + Sub<T, Output = T>,
 {
     let xs = into_mut_notnans(xs);
 
@@ -201,7 +201,8 @@ where
 #[allow(unused_mut)]
 fn running_stat<T>() -> impl FnMut(T) -> (T, T)
 where
-    T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
+    T: Num + Copy + Debug + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> +
+    Add<T, Output = T>,
 {
     let mut m_n = 1;
 
@@ -237,7 +238,7 @@ where
 /// Return the sample variance of input data
 crate fn variance<T>(xs: &[T]) -> Result<T, MyError>
 where
-    T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
+    T: Float + FromPrimitive + Debug + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
     if xs.len() < 2 {
         Err(MyError::NoEnoughDataForVariance)
@@ -256,7 +257,7 @@ where
 /// Return the population variance of input data
 crate fn pvariance<T>(xs: &[T]) -> Result<T, MyError>
 where
-    T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
+    T: Float + FromPrimitive + Debug + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
     if xs.is_empty() {
         Err(MyError::NoEnoughDataForPopulationVariance)
@@ -274,7 +275,7 @@ where
 
 crate fn stdev<T>(xs: &[T]) -> Result<T, MyError>
 where
-    T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
+    T: Float + FromPrimitive + Debug + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
     let res = variance(xs)?;
     // variance can't be a negative value no additional checks needed
@@ -283,7 +284,7 @@ where
 
 crate fn pstdev<T>(xs: &[T]) -> Result<T, MyError>
 where
-    T: Float + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
+    T: Float + FromPrimitive + Debug + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
 {
     let res = pvariance(xs)?;
     // pvariance can't be a negative value no additional checks needed
@@ -292,7 +293,8 @@ where
 
 crate fn mean<T>(xs: &[T]) -> Result<T, MyError>
 where
-    T: Num + Copy + FromPrimitive + Mul<T, Output = T> + Div<T, Output = T> + Add<T, Output = T>,
+    T: Num + Copy + FromPrimitive + Debug + Mul<T, Output = T> + Div<T, Output = T> +
+    Add<T, Output = T>,
 {
     if xs.is_empty() {
         Err(MyError::NoEnoughDataForMean)
@@ -319,7 +321,7 @@ where
 ///
 /// println!("{:?}", xs);
 /// ```
-fn partition<T: Copy + PartialOrd>(
+fn partition<T: Copy + PartialOrd + Debug>(
     xs: &mut [T],
     pivot_idx: usize,
     start: usize,
