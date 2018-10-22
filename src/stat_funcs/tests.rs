@@ -1,4 +1,5 @@
-use crate::stat_funcs::{kth_stats_recur, mean, median_grouped, partition, pvariance, variance};
+use crate::stat_funcs::{kth_stats_recur, mean, median_grouped, partition, pvariance, variance,
+harmonic_mean};
 use quickcheck::{quickcheck, TestResult};
 
 // round number up to $digits digits, convenient for some tests below
@@ -143,4 +144,18 @@ fn test_median_grouped() {
 
     let res = median_grouped(&mut xs, 2);
     assert_eq!(res.unwrap(), 3.5);
+}
+
+#[test]
+fn test_harmonic_mean() {
+    let xs: [f64; 0] = [];
+    assert!(harmonic_mean(&xs).is_err());
+
+    let xs = [1.7976931348623153e+308];
+    let res = harmonic_mean(&xs);
+    assert_eq!(res.unwrap(), xs[0]);
+
+    let xs = [2.5, 3.0, 10.0];
+    let res = harmonic_mean(&xs);
+    assert_eq!(round!(res.unwrap(), 4), 3.6);
 }

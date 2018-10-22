@@ -68,10 +68,16 @@ crate fn mode<T: Eq + Ord + Clone + Hash + Debug>(xs: &[T]) -> Result<T, MyError
 
 crate fn harmonic_mean<T>(xs: &[T]) -> Result<T, MyError>
 where
-    T: PartialOrd + Float,
+    T: PartialOrd + Float + Debug,
 {
     if xs.is_empty() {
         return Err(MyError::HarmonicNoDataPoints);
+    }
+
+    if xs.len() == 1 {
+        // special case for a list of 1 element, we just return the value itself, because
+        // 1/(1/x) == x
+        return Ok(xs[0]);
     }
 
     let result = xs.into_iter().try_fold((T::zero(), T::zero()), |acc, e| {
