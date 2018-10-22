@@ -37,7 +37,7 @@ macro_rules! gen_wrapper {
             // generate wrapper function
             crate fn $func_name(py: Python<'_>, xs: PyObject, $($arg: $arg_type)*) ->
                                                                         PyResult<$ret_type> {
-                let ys = pylist_to_vec(py, &xs)?;
+                let ys = pylist_to_vec::<$ret_type>(py, &xs)?;
                 to_python_result(py, stat_funcs::$rust_func_name(&ys, $($arg)*))
             }
         )+
@@ -50,7 +50,7 @@ macro_rules! gen_wrapper {
         $(
             crate fn $func_name(py: Python<'_>, xs: PyObject, $($arg: $arg_type)*) ->
                                                                             PyResult<$ret_type> {
-                let mut ys = pylist_to_vec(py, &xs)?;
+                let mut ys = pylist_to_vec::<$ret_type>(py, &xs)?;
                 to_python_result(py, stat_funcs::$rust_func_name(&mut ys, $($arg)*))
             }
         )+
