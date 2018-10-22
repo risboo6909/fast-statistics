@@ -69,9 +69,7 @@ def test_pvariance(xs):
     assert isclose(fast_stat.pvariance(xs), statistics.pvariance(xs)) is True
 
 
-# width=32 is to prevent floating point OverflowError
-# TODO: check rust floats
-@given(lists(floats(allow_nan=False, allow_infinity=False, min_value=0.0, width=32), min_size=1))
+@given(lists(floats(allow_nan=False, allow_infinity=False, min_value=0.0), min_size=1))
 def test_harmonic_mean(xs):
     assert isclose(fast_stat.harmonic_mean(xs), statistics.harmonic_mean(xs)) is True
 
