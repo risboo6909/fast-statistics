@@ -1,0 +1,15 @@
+language: rust
+rust:
+  - nightly
+
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - libXxf86vm-dev
+
+script:
+  - cargo build --verbose
+  - cargo test --verbose
+  - '[ "$TRAVIS_RUST_VERSION" != "nightly" ] || cargo bench --verbose --features unstable'
