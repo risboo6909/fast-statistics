@@ -18,7 +18,7 @@ pyo3 = {git = "https://github.com/PyO3/pyo3", features = ["extension-module"]}
 quickcheck = "0.6"
 
 [dependencies.cpython]
-version = "0.1"
+version = "0.2"
 features = ["extension-module"]
 #default_features = false
 #features = ["python27-sys", "extension-module-2-7"]

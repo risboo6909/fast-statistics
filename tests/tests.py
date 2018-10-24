@@ -85,5 +85,8 @@ if __name__ == '__main__':
     test_with_msg('Testing pstdev', test_pstdev)
     test_with_msg('Testing variance', test_variance)
     test_with_msg('Testing pvariance', test_pvariance)
-    test_with_msg('Testing harmonic_mean', test_harmonic_mean)
+
+    if 'harmonic_mean' in statistics.__dict__:
+        # python's 3.5 statistics module doesn't have harmonic_mean
+        test_with_msg('Testing harmonic_mean', test_harmonic_mean)
 
