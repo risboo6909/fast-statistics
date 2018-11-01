@@ -52,8 +52,24 @@ sum
  is implicitly used in many various stat calculations. I didn't implement such a behaviour in the first version of fast-statistics, however this issue seems to matter in rare cases  when summing up very small and very large numbers at the same time. I think this feature will be implemented in further versions of the library.
 
 #### Supported functions
+```
+variance :: [f64] -> f64
+pvariance :: [f64] -> f64
+pstdev :: [f64] -> f64
+stdev :: [f64] -> f64
+mean :: [f64] -> f64
+harmonic_mean :: [f64] -> f64
+median :: [f64] -> f64
+median_low :: [f64] -> f64
+median_high :: [f64] -> f64
+median_grouped :: [usize] -> f64
+mode_float :: [f64] -> f64
+mode_int :: [i64] -> i64
+mode_uint :: [u64] -> u64
+mode_str :: [str] -> str
+kth_stat_float :: [usize] -> f64
+kth_stat_uint :: [usize] -> uint
+kth_stat_int :: [usize] -> int
+```
 
-### Important note
-TODO: Add note about precision and bugs.
-
-Pull-requests are welcome!
+#### Pull-requests are welcome!
