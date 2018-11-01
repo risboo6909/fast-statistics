@@ -56,7 +56,7 @@ sum
 Performance (fast_stat) vs python version (statistics)
 
 Intel(R) Core(TM) i7-4600U CPU @ 2.10GHz
-
+```
 Data set size is 1000000 elements
 
 Mode computation benchmarks
@@ -104,7 +104,7 @@ Standard deviation on random data
 
 fast_stat.stdev 10 loops, best of 3: 38.9 msec per loop
 statistics.stdev 10 loops, best of 3: 3.3 sec per loop
-
+```
 
 #### Supported functions
 ```
