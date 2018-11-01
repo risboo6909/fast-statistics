@@ -38,9 +38,9 @@ Everythings has its price.
 Major difference between python and rust implementation is that the latter one uses strict typing inside. This is actually a good thing, but at the same time it imposes some restrictions one should aware of.
 
 1. Some functions work with real numbers only by default. Fast-statistics uses 
-f64
+```f64```
  inside to represent real numbers. If you pass a list of integers to such a function, all its contents will be automatically converted into reals, so be careful using it because python doesn't introduce any limits to integers so conversion of very big numbers to 
-f64
+```f64```
  may cause incorrect results. See the list of supported functions and their input and output type below.
 
 2. Original python statistics package is able to work with arbitrary big integers, decimals and ratios. If you need one of those types then fast-statistics won't help you with that. It only works with native types such as 64 bit integers and floating point numbers.
