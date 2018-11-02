@@ -35,11 +35,6 @@ setup(
     ],
     description="Rust extension intended to be a faster version of built-in python statistics package",
     url="https://github.com/risboo6909/fast-statistics",
-    classifiers=[
-        "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: POSIX",
-    ],
     packages=["fast_stat"],
     rust_extensions=[RustExtension("fast_stat.fast_stat", binding=Binding.PyO3)],
     install_requires=install_requires,
