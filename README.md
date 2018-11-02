@@ -38,9 +38,9 @@ Everythings has its price.
 Major difference between python and rust implementation is that the latter one uses strict typing inside. This is actually a good thing, but at the same time it imposes some restrictions one should aware of.
 
 1. Some functions work with real numbers only by default. Fast-statistics uses 
-f64
+```f64```
  inside to represent real numbers. If you pass a list of integers to such a function, all its contents will be automatically converted into reals, so be careful using it because python doesn't introduce any limits to integers so conversion of very big numbers to 
-f64
+```f64```
  may cause incorrect results. See the list of supported functions and their input and output type below.
 
 2. Original python statistics package is able to work with arbitrary big integers, decimals and ratios. If you need one of those types then fast-statistics won't help you with that. It only works with native types such as 64 bit integers and floating point numbers.
@@ -50,6 +50,61 @@ sum
  function by converting floating point numbers into fractions and then summing them up. 
 sum
  is implicitly used in many various stat calculations. I didn't implement such a behaviour in the first version of fast-statistics, however this issue seems to matter in rare cases  when summing up very small and very large numbers at the same time. I think this feature will be implemented in further versions of the library.
+
+#### Benchmarks
+
+Performance (fast_stat) vs python version (statistics)
+
+Intel(R) Core(TM) i7-4600U CPU @ 2.10GHz
+```
+Data set size is 1000000 elements
+
+Mode computation benchmarks
+
+fast_stat.mode_int 10 loops, best of 3: 151 msec per loop
+fast_stat.mode_uint 10 loops, best of 3: 161 msec per loop
+statistics.mode 10 loops, best of 3: 134 msec per loop
+
+fast_stat.mode_float 10 loops, best of 3: 181 msec per loop
+statistics.mode 10 loops, best of 3: 181 msec per loop
+
+
+Median search on heterogeneous data
+
+fast_stat.median 10 loops, best of 3: 49.7 msec per loop
+statistics.median 10 loops, best of 3: 636 msec per loop
+fast_stat.median_low 10 loops, best of 3: 59.8 msec per loop
+statistics.median_low 10 loops, best of 3: 639 msec per loop
+
+fast_stat.median_grouped, interval 2 10 loops, best of 3: 176 msec per loop
+statistics.median_grouped, interval 2 10 loops, best of 3: 641 msec per loop
+fast_stat.median_grouped, interval 20 10 loops, best of 3: 175 msec per loop
+statistics.median_grouped, interval 20 10 loops, best of 3: 643 msec per loop
+
+Median search on homogeneous data
+
+fast_stat.median 10 loops, best of 3: 58.6 msec per loop
+statistics.median 10 loops, best of 3: 137 msec per loop
+fast_stat.median_high 10 loops, best of 3: 70.7 msec per loop
+statistics.median_high 10 loops, best of 3: 132 msec per loop
+
+fast_stat.median_grouped, interval 2 10 loops, best of 3: 119 msec per loop
+statistics.median_grouped, interval 2 10 loops, best of 3: 139 msec per loop
+fast_stat.median_grouped, interval 20 10 loops, best of 3: 118 msec per loop
+statistics.median_grouped, interval 20 10 loops, best of 3: 155 msec per loop
+
+
+Harmonic mean computation on random data
+
+fast_stat.harmonic_mean 10 loops, best of 3: 40.3 msec per loop
+statistics.harmonic_mean 10 loops, best of 3: 1.18 sec per loop
+
+
+Standard deviation on random data
+
+fast_stat.stdev 10 loops, best of 3: 38.9 msec per loop
+statistics.stdev 10 loops, best of 3: 3.3 sec per loop
+```
 
 #### Supported functions
 ```
