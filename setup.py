@@ -21,7 +21,7 @@ install_requires = []
 
 setup(
     name="fast-statistics",
-    version="0.1.0",
+    version="0.2.0",
     author="Boris Tatarintsev",
     classifiers=[
         "License :: OSI Approved :: MIT License",
