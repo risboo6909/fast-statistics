@@ -14,7 +14,7 @@ Quick example.
 
 Let's suppose we want to find a median of a given list of floating point numbers, we could simply write:
 ```python
-from fast_statistics import median
+from fast_stat import median
 
 median_value = median([2.0, 1.0, 3.0, 5.0, 7.0])
 print (median_value)
