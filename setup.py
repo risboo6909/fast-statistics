@@ -22,6 +22,7 @@ install_requires = []
 setup(
     name="fast-statistics",
     version="0.1.0",
+    author="Boris Tatarintsev",
     classifiers=[
         "License :: OSI Approved :: MIT License",
         "Development Status :: 3 - Alpha",
@@ -30,6 +31,13 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Rust",
+        "Operating System :: POSIX",
+    ],
+    description="Rust extension intended to be a faster version of built-in python statistics package",
+    url="https://github.com/risboo6909/fast-statistics",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
         "Operating System :: POSIX",
     ],
     packages=["fast_stat"],
