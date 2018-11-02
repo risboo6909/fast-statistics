@@ -24,7 +24,7 @@ setup(
     version="0.1.0",
     classifiers=[
         "License :: OSI Approved :: MIT License",
-        "Development Status :: 1 - Alpha",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
